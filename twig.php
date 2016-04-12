@@ -21,8 +21,7 @@ if ($enabled) {
  * @author    Florens Verschelde <florens@fvsch.com>
  * @version   1.0.0
  */
-class TwigComponent extends Kirby\Component\Template
-{
+class TwigComponent extends Kirby\Component\Template {
 
 	/**
 	 * Kirby Helper functions to expose as simple Twig functions
@@ -33,7 +32,7 @@ class TwigComponent extends Kirby\Component\Template
 	 *
 	 * @var array
 	 */
-	private $helpersList = [
+	private $toTwigFunctions = [
 		// Templating essentials
 		'snippet',
 		// High-level text transformations
@@ -55,6 +54,25 @@ class TwigComponent extends Kirby\Component\Template
 	];
 
 	/**
+	 * Returns a template file path by name
+	 *
+	 * @param string $name
+	 * @return string
+	 */
+	public function file($name) {
+		$usephp = c::get('plugin.twig.usephp', true);
+		$base = $this->kirby->roots()->templates() . DS . str_replace('/', DS, $name);
+		$twig = $base . '.twig';
+		$php  = $base . '.php';
+		// Only check existing files if PHP template support is active
+		if ($usephp and !is_file($twig) and is_file($php)) {
+			return $php;
+		} else {
+			return $twig;
+		}
+	}
+
+	/**
 	 * Renders the template by page with the additional data
 	 *
 	 * @param Page|string $template
@@ -65,56 +83,31 @@ class TwigComponent extends Kirby\Component\Template
 	 */
 	public function render($template, $data = [], $return = true) {
 
-		// We have to reimplement all of the logic of $page->templateFile()
-		// and sadly we can’t fix $page->hasTemplate() (which hardcodes looking
-		// for a .php file).
-		$dir = $this->kirby->roots()->templates();
-
-		// List of template paths we're going to render, by priority
-		$paths = [
-			'twig:intended' => null,
-			'php:intended'  => null,
-			'twig:default'  => $dir . DS . 'default.twig',
-			'php:default'   => $dir . DS . 'default.php'
-		];
-
-		if($template instanceof Page) {
+		if ($template instanceof Page) {
 			$page = $template;
-			$name = $page->intendedTemplate();
-			$paths['twig:intended'] = $dir . DS . $name . '.twig';
-			$paths['php:intended']  = $dir . DS . $name . '.php';
+			$file = $page->templateFile();
 			$data = $this->data($page, $data);
-		}
-		// I couldn't find any code path that calls the render function
-		// with the path of a PHP file instead of a Page object.
-		// Still keeping this for compatibility with Kirby\Component\Template
-		elseif (substr($template, -4) === '.php') {
-			$paths['twig:intended'] = str_replace('.php', '.twig', $template);
-			$paths['php:intended'] = $template;
+		} else {
+			$file = $template;
 			$data = $this->data(null, $data);
 		}
 
-		// Let's see if we have an intended or default template
-		$found = null;
-		foreach ($paths as $key => $path) {
-			if (is_file($path)) {
-				$found = [ 'type' => explode(':', $key)[0], 'path' => $path ];
-				break;
-			}
-		}
-		if ($found == null) {
+		// check for an existing template
+		if (!file_exists($file)) {
 			throw new Exception('The template could not be found');
 		}
 
-		// Merge and register the template data globally
+		// merge and register the template data globally
 		tpl::$data = array_merge(tpl::$data, $data);
 
 		// Render using Twig or Kirby's default PHP rendering
-		if ($found['type'] === 'twig') {
-			return $this->renderTwig($found['path'], $return);
-		}
-		else {
-			return tpl::load($found['path'], null, $return);
+		$ext = pathinfo($file, PATHINFO_EXTENSION);
+		if ($ext === 'twig') {
+			return $this->renderTwig($file, $return);
+		} elseif ($ext === 'php') {
+			return tpl::load($file, null, $return);
+		} else {
+			throw new Exception('Invalid template path: ' . basename($file));
 		}
 	}
 
@@ -127,26 +120,23 @@ class TwigComponent extends Kirby\Component\Template
 	 */
 	private function renderTwig($file, $return = true) {
 
-		$tplDir   = $this->kirby->roots()->templates();
-		$cacheDir = $this->kirby->roots()->cache() . DS . 'twig';
+		$debug = c::get('debug', false);
+		$dir   = $this->kirby->roots()->templates();
+		$cache = c::get('cache', false) and c::get('plugin.twig.cache', false) ?
+			     $this->kirby->roots()->cache() . DS . 'twig' : false;
+
 		$options  = [
-			'debug' => c::get('debug', false),
-			'strict_variables' => c::get('debug', false)
+			'debug' => $debug,
+			'strict_variables' => $debug,
+			'cache' => $cache,
+			'autoescape' => c::get('plugin.twig.autoescape', true)
 		];
 
-		// Use Twig cache if using Kirby cache PLUS asking for Twig cache
-		if (c::get('cache', false) and c::get('plugin.twig.cache', false)) {
-			$options['cache'] = $cacheDir;
-		}
-
-		// Use escaping by default, unless set otherwise
-		$options['autoescape'] = c::get('plugin.twig.autoescape', true);
-
 		// Start up Twig
-		$twig = new Twig_Environment(new Twig_Loader_Filesystem($tplDir), $options);
+		$twig = new Twig_Environment(new Twig_Loader_Filesystem($dir), $options);
 
 		// Plug in our selected list of helper functions
-		foreach ($this->helpersList as $name) {
+		foreach ($this->toTwigFunctions as $name) {
 			$twig->addFunction(new Twig_SimpleFunction($name, $name));
 		}
 
@@ -156,12 +146,12 @@ class TwigComponent extends Kirby\Component\Template
 		}
 
 		// Enable Twig’s dump function
-		$twig->addExtension(new Twig_Extension_Debug());
+		if ($debug) $twig->addExtension(new Twig_Extension_Debug());
 
 		// Render the template (should we catch Twig_Error?)
-		$content = $twig->render( str_replace($tplDir, '', $file) );
-		if($return) return $content;
-		echo $content;
+		$content = $twig->render( str_replace($dir, '', $file) );
+		if ($return) return $content;
+		else echo $content;
 	}
 
 }
