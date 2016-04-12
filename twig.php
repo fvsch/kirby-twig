@@ -173,10 +173,10 @@ class TwigComponent extends Kirby\Component\Template {
 // and enabled in the user’s config.
 
 if ($enabled) {
-	if (file_exists(__DIR__ . DS . 'vendor' . DS . 'autoload.php')) {
-		require_once (__DIR__ . DS . 'vendor' . DS . 'autoload.php');
-		$kirby->set('component', 'template', 'TwigComponent');
-	} else {
+	if (! class_exists('Twig_Environment') or ! file_exists(__DIR__ . DS . 'vendor' . DS . 'autoload.php')) {
 		throw new Exception('Twig plugin: the Twig library was not installed. Run composer install.');
 	}
+	
+	require_once (__DIR__ . DS . 'vendor' . DS . 'autoload.php');
+	$kirby->set('component', 'template', 'TwigComponent');
 }
