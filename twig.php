@@ -98,14 +98,14 @@ class TwigComponent extends Kirby\Component\Template {
 		}
 
 		// merge and register the template data globally
-		tpl::$data = array_merge(tpl::$data, $data);
+		Tpl::$data = array_merge(Tpl::$data, $data);
 
 		// Render using Twig or Kirby's default PHP rendering
 		$ext = pathinfo($file, PATHINFO_EXTENSION);
 		if ($ext === 'twig') {
 			return $this->renderTwig($file, $return);
 		} elseif ($ext === 'php') {
-			return tpl::load($file, null, $return);
+			return Tpl::load($file, null, $return);
 		} else {
 			throw new Exception('Invalid template path: ' . basename($file));
 		}
@@ -140,16 +140,11 @@ class TwigComponent extends Kirby\Component\Template {
 			$twig->addFunction(new Twig_SimpleFunction($name, $name));
 		}
 
-		// Add the main variables (page, pages, site, kirby + controller stuff)
-		foreach (tpl::$data as $key=>$item) {
-			$twig->addGlobal($key, $item);
-		}
-
 		// Enable Twig’s dump function
 		if ($debug) $twig->addExtension(new Twig_Extension_Debug());
 
 		// Render the template (should we catch Twig_Error?)
-		$content = $twig->render( str_replace($dir, '', $file) );
+		$content = $twig->render( str_replace($dir, '', $file), Tpl::get() );
 		if ($return) return $content;
 		else echo $content;
 	}
