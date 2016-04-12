@@ -56,11 +56,7 @@ See [templating.md](templating.md) for tips and tricks for templating with Kirby
 ## Known limitations
 
 1.  Only a subset of Kirby’s functions and helpers are exposed to Twig templates (to be documented).
-    -   For instance the `go()` function is not available to Twig templates. You can (and should) use it in a Controller or Page Model, of course.
-    -   If there are Kirby functions that are useful for templating and which are not listed in `TwigComponent::$helpersList`, please file an issue.
 
-2.  Likewise, normal PHP functions are not available to Twig templates. If you want full PHP power, use PHP templates, or write [Controllers that send data to your templates](https://getkirby.com/docs/templates/controllers).
+2.  Likewise, normal PHP functions are not available to Twig templates. If you want full PHP power, use PHP templates, or write [Controllers that send data to your templates](https://getkirby.com/docs/templates/controllers). Note that Twig already gives you a lot of tools for working with strings and arrays: [Twig Reference](http://twig.sensiolabs.org/documentation#reference).
 
-3.  If a given template name has a `.twig` template but no `.php` template, Kirby’s `$page->hasTemplate()` will be false. Similarly, `$page->template()` can be wrong.
-
-4.  By design, Twig will *not* let you include files from outside the `site/templates` directory. If you have a use care where this is a problem, please open an issue.
+3.  By design, Twig will *not* let you include files from outside the `site/templates` directory. If you have a use care where this is a problem, please open an issue.
