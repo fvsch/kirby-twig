@@ -51,7 +51,7 @@ c::set('plugin.twig.usephp', true);
 
 ## Using Twig
 
-See [templating.md](templating.md) for tips and tricks for templating with Kirby and Twig.
+See [Twig templating tips for Kirby](templating.md).
 
 ## Known limitations
 
