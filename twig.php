@@ -2,10 +2,8 @@
 
 $enabled = c::get('plugin.twig.enabled', false);
 
-// Check compatible version
 if ($enabled) {
-	$version = explode('.', kirby()->version());
-	if ($version[0] < 2 or $version[1] < 3) {
+	if (!class_exists('Kirby\Component\Template')) {
 		throw new Exception('Twig plugin requires Kirby 2.3 or higher. Current version: ' . kirby()->version());
 	}
 }
@@ -21,7 +19,7 @@ if ($enabled) {
  * @author    Florens Verschelde <florens@fvsch.com>
  * @version   1.0.1
  */
-class TwigComponent extends Kirby\Component\Template {
+class KirbyTwigComponent extends Kirby\Component\Template {
 
 	/**
 	 * Kirby Helper functions to expose as simple Twig functions
@@ -173,10 +171,12 @@ class TwigComponent extends Kirby\Component\Template {
 // and enabled in the user’s config.
 
 if ($enabled) {
-	if (file_exists(__DIR__ . DS . 'vendor' . DS . 'autoload.php')) {
-		require_once (__DIR__ . DS . 'vendor' . DS . 'autoload.php');
-		$kirby->set('component', 'template', 'TwigComponent');
-	} else {
-		throw new Exception('Twig plugin: the Twig library was not installed. Run composer install.');
+	if (!class_exists('Twig_Environment')) {
+		if (file_exists($loader = __DIR__ . DS . 'vendor' . DS . 'autoload.php')) {
+			require_once $loader;
+		} else {
+			throw new Exception('Twig plugin: the Twig library was not installed. Run composer install.');
+		}
 	}
+	$kirby->set('component', 'template', 'KirbyTwigComponent');
 }
