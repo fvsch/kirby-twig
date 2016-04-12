@@ -19,38 +19,49 @@ if ($enabled) {
  *
  * @package   Kirby CMS Twig Plugin
  * @author    Florens Verschelde <florens@fvsch.com>
- * @version   1.0.0
+ * @version   1.0.1
  */
 class TwigComponent extends Kirby\Component\Template {
 
 	/**
 	 * Kirby Helper functions to expose as simple Twig functions
+	 *
 	 * This is purposefuly a subset of https://getkirby.com/docs/cheatsheet#helpers
 	 * and a even stricter subset of https://getkirby.com/docs/toolkit/api#helpers
 	 * It’s limited to things helpful for HTML templating. (For example the csrf() helper is
 	 * not used, since checking for cross-site reequest forgery is better left to a controller!)
 	 *
+	 * Use Twig functions for: helpers that build a HTML tag or retrieve some data.
+	 *
 	 * @var array
 	 */
 	private $toTwigFunctions = [
-		// Templating essentials
-		'snippet',
-		// High-level text transformations
-		'markdown', 'smartypants', 'kirbytext', 'multiline', 'excerpt', 'widont',
-		// String escaping
-		'esc', 'html', 'xml',
 		// HTML tags generators
-		'css', 'js', 'image',
-		// Use Kirby tags
-		'kirbytag',
+		'css', 'js', 'kirbytag',
 		// Service-specific HTML generation
-		'youtube', 'vimeo', 'twitter', 'gist', 'gravatar',
+		'youtube', 'vimeo', 'twitter', 'gist',
+		// URL and request stuff
+		'get', 'thisUrl', 'param', 'params',
 		// Parsing strings
 		'yaml',
-		// URL and request stuff
-		'url', 'get', 'thisUrl', 'param', 'params',
 		// Debug
 		'memory'
+	];
+
+	/**
+	 * Kirby Helper functions to expose as simple Twig filters
+	 *
+	 * Use Twig filters for: helpers that transforms a string to a string
+	 *
+	 * @var array
+	 */
+	private $toTwigFilters = [
+		// High-level text transformations
+		'markdown', 'smartypants', 'kirbytext', 'multiline', 'excerpt',
+		// String escaping (note that Twig as its own |escape filter)
+		'html', 'xml',
+		// String building
+		'url', 'gravatar'
 	];
 
 	/**
@@ -135,9 +146,15 @@ class TwigComponent extends Kirby\Component\Template {
 		// Start up Twig
 		$twig = new Twig_Environment(new Twig_Loader_Filesystem($dir), $options);
 
+		// Add the snippet helper and mark it as safe for HTML output
+		$twig->addFunction(new Twig_SimpleFunction('snippet', 'snippet', ['is_safe' => ['html']]));
+
 		// Plug in our selected list of helper functions
 		foreach ($this->toTwigFunctions as $name) {
 			$twig->addFunction(new Twig_SimpleFunction($name, $name));
+		}
+		foreach ($this->toTwigFilters as $name) {
+			$twig->addFilter(new Twig_SimpleFilter($name, $name));
 		}
 
 		// Enable Twig’s dump function

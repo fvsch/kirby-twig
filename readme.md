@@ -38,13 +38,20 @@ You can now create `.twig` templates in your `site/templates` directory. Note th
 // REQUIRED: activate Twig plugin
 c::set('plugin.twig.enabled', true);
 
-// Optional: use Twig’s PHP cache in addition to Kirby’s HTML cache,
-// (Only works when Kirby’s cache is active.) Defaults to false.
-c::set('plugin.twig.cache', true);
+// Option: use Twig’s PHP cache in addition to Kirby’s HTML cache.
+// (Only works when Kirby’s own cache is active.)
+// Defaults to false
+c::set('plugin.twig.cache', false);
 
-// Optional: disable or specify autoescaping. Defaults to 'html'
+// Option: disable or specify autoescaping type.
 // http://twig.sensiolabs.org/doc/api.html#environment-options
-c::set('plugin.twig.autoescape', false);
+// Defaults to true
+c::set('plugin.twig.autoescape', true);
+
+// Should we use .php templates as fallback when .twig
+// templates don't exist? Set to false to only allow Twig templates.
+// Defaults to true
+c::set('plugin.twig.usephp', true);
 ```
 
 ## Using Kirby’s API in Twig templates
