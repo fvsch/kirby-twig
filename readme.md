@@ -3,24 +3,19 @@
 -   Adds support for [Twig templates](http://twig.sensiolabs.org/) to [Kirby CMS](https://getkirby.com/).
 -   Requires Kirby 2.3 (in beta as of 2016-04-12).
 
-### I don’t like Twig!
+> I don’t like Twig!
 
-No problem, just use classic PHP templates.
+It’s okay, using this plugin is of course optional. You can keep using PHP templates in Kirby CMS.
 
-### I like Twig, but I don’t want to convert all my templates
+> I like Twig, but I don’t want to convert all my templates
 
-Good news: you don’t have to.
+Good news: you don’t have to! By default your PHP templates will keep working.
 
-This plugin uses file extensions to know which rendering strategy to use: PHP or Twig.
+This plugin can work in two modes:
 
-For example, if you have a `post.txt` content file, this plugin will look for these files in this order:
+1. Default: allow both Twig and PHP templates. (If both `mytemplate.twig` and `mytemplate.php` exist, the Twig template takes precedence.)
+2. Optional: allow Twig templates only.
 
-1. `site/templates/post.twig`
-2. `site/templates/post.php`
-3. `site/templates/default.twig`
-4. `site/templates/default.php`
-
-So if you already have a working `post.php` template and don’t want to convert it to Twig, just keep it and it’ll keep working. Same for your `default.php`.
 
 ## Installation
 
@@ -30,7 +25,7 @@ You will need [Composer](https://getcomposer.org/), a command-line tool, to inst
 2. Open a terminal in your `site/plugins/twig` folder and run `composer install`.
 3. To activate the plugin, put `c::set('plugin.twig.enabled', true);` in your `config.php`.
 
-You can now create `.twig` templates in your `site/templates` directory. Note that if you have both `.php` and `.twig` templates for a given template name, the Twig template will take precedence.
+You can now create `.twig` templates in your `site/templates` directory.
 
 ## Options
 
@@ -54,27 +49,9 @@ c::set('plugin.twig.autoescape', true);
 c::set('plugin.twig.usephp', true);
 ```
 
-## Using Kirby’s API in Twig templates
+## Using Twig
 
-Kirby’s chaining API for `$page`, `$site`, etc. works well with Twig.
-
-```twig
-{% set posts = site
-    .find('blog')
-    .children
-    .filterBy('status', 'published')
-    .sortBy('date', 'desc') %}
-
-{% if posts.count %}
-    <ul>
-    {% for post in posts %}
-        <li><a href="{{ post.url }}">{{ post.title }}</a></li>
-    {% endfor %}
-    </ul>
-{% endif %}
-```
-
-See [templating.md](templating.md) for more tips and tricks for templating with Kirby + Twig.
+See [templating.md](templating.md) for tips and tricks for templating with Kirby and Twig.
 
 ## Known limitations
 
