@@ -1,4 +1,9 @@
 {
+  "name": "fvsch/kirby-twig",
+  "description": "Twig Plugin for Kirby CMS",
+  "author": "Florens Verschelde <florens@fvsch.com>",
+  "license": "MIT",
+  "type": "kirby-plugin",
   "require": {
     "twig/twig": "~1.24"
   }
