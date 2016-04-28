@@ -27,36 +27,60 @@ You will need [Composer](https://getcomposer.org/), a command-line tool, to inst
 
 You can now create `.twig` templates in your `site/templates` directory.
 
+
+## Using Twig
+
+See [Twig templating tips for Kirby](doc/templating.md).
+
+
+## How errors are managed
+
+With PHP templates, most errors are shown directly in the page. Things are a bit different with Twig: if an error is not suppressed, the template will *not* be rendered at all, and you end up with an error page.
+
+Here is how this plugin manages templating errors:
+
+### In production (`c::get('debug') == false`)
+
+-   Undefined variables and methods are ignored, so they don’t raise an error.
+-   For other errors, an error page will be shown, and it will have very little information about the source of the error (it doesn’t mention Twig, template names, etc.).
+-   We will show the error page (`c::get('error')`) if it exists, or a very short message otherwise.
+
+### In debug mode (`c::get('debug') == true`)
+
+-   Undefined variables and methods raise an error (see the config section if you want to change that).
+-   A nice error page is shown, with an excerpt of the faulty template code.
+
+![](doc/errorpage.png)
+
+
 ## Options
 
 ```php
 // REQUIRED: activate Twig plugin
 c::set('plugin.twig.enabled', true);
 
-// Option: use Twig’s PHP cache in addition to Kirby’s HTML cache.
-// (Only works when Kirby’s own cache is active.)
-// Defaults to false
+// Should we use .php templates as fallback when .twig
+// templates don't exist? Set to false to only allow Twig templates
+c::set('plugin.twig.usephp', true);
+
+// Use Twig’s PHP cache?
+// (Note that Kirby has its own HTML cache.)
 c::set('plugin.twig.cache', false);
 
-// Option: disable or specify autoescaping type.
-// http://twig.sensiolabs.org/doc/api.html#environment-options
-// Defaults to true
-c::set('plugin.twig.autoescape', true);
+// Should Twig throw errors when using undefined variables or methods?
+// Defaults to the value of the 'debug' option
+c::set('plugin.twig.strict', c::get('debug', false));
 
-// Should we use .php templates as fallback when .twig
-// templates don't exist? Set to false to only allow Twig templates.
-// Defaults to true
-c::set('plugin.twig.usephp', true);
+// Disable or specify autoescaping type
+// http://twig.sensiolabs.org/doc/api.html#environment-options
+c::set('plugin.twig.autoescape', true);
 ```
 
-## Using Twig
-
-See [Twig templating tips for Kirby](templating.md).
 
 ## Known limitations
 
-1.  Only a subset of Kirby’s functions and helpers are exposed to Twig templates (to be documented).
+1.  Only a subset of Kirby’s functions and helpers are exposed to Twig templates. The `$page`, `$pages` and `$site` objects are available (as `page`, `pages` and `site`), but only a fraction of Kirby’s many helper functions are. See [doc/templating.md](doc/templating.md) for more info.
 
 2.  Likewise, normal PHP functions are not available to Twig templates. If you want full PHP power, use PHP templates, or write [Controllers that send data to your templates](https://getkirby.com/docs/templates/controllers). Note that Twig already gives you a lot of tools for working with strings and arrays: [Twig Reference](http://twig.sensiolabs.org/documentation#reference).
 
-3.  By design, Twig will *not* let you include files from outside the `site/templates` directory. If you have a use care where this is a problem, please open an issue.
+3.  By design, Twig will *not* let you include files from outside the `site/templates` directory. If you have a use case where this is a problem, please open an issue.

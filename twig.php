@@ -1,10 +1,36 @@
 <?php
 
-$enabled = c::get('plugin.twig.enabled', false);
+namespace Kirby\Plugin\Twig;
+
+use C;
+use Escape;
+use Exception;
+use F;
+use Page;
+use Response;
+use Tpl;
+
+use Twig_Environment;
+use Twig_Loader_Filesystem;
+use Twig_SimpleFunction;
+use Twig_SimpleFilter;
+use Twig_Extension_Debug;
+use Twig_Error;
+
+
+$enabled = C::get('plugin.twig.enabled', false);
+$loader  = __DIR__ . DS . 'vendor' . DS . 'autoload.php';
 
 if ($enabled) {
 	if (!class_exists('Kirby\Component\Template')) {
 		throw new Exception('Twig plugin requires Kirby 2.3 or higher. Current version: ' . kirby()->version());
+	}
+	if (!class_exists('Twig_Environment')) {
+		if (file_exists($loader)) {
+			require_once $loader;
+		} else {
+			throw new Exception('Twig plugin: the Twig library was not installed. Run composer install.');
+		}
 	}
 }
 
@@ -17,9 +43,15 @@ if ($enabled) {
  *
  * @package   Kirby CMS Twig Plugin
  * @author    Florens Verschelde <florens@fvsch.com>
- * @version   1.0.1
+ * @version   1.1.0
  */
-class KirbyTwigComponent extends Kirby\Component\Template {
+class TwigComponent extends \Kirby\Component\Template {
+
+	/**
+	 * How many times we have tried to render a page through Kirby
+	 * (hence possibly through Twig) from the renderTwigError method.
+	 */
+	private $renderTwigErrorCount = 0;
 
 	/**
 	 * Kirby Helper functions to expose as simple Twig functions
@@ -33,7 +65,7 @@ class KirbyTwigComponent extends Kirby\Component\Template {
 	 *
 	 * @var array
 	 */
-	private $toTwigFunctions = [
+	private $exposeFunctions = [
 		// HTML tags generators
 		'css', 'js', 'kirbytag',
 		// Service-specific HTML generation
@@ -42,6 +74,8 @@ class KirbyTwigComponent extends Kirby\Component\Template {
 		'get', 'thisUrl', 'param', 'params',
 		// Parsing strings
 		'yaml',
+		// Getting Kirby pages
+		'page', 'pages',
 		// Debug
 		'memory'
 	];
@@ -53,7 +87,7 @@ class KirbyTwigComponent extends Kirby\Component\Template {
 	 *
 	 * @var array
 	 */
-	private $toTwigFilters = [
+	private $exposeFilters = [
 		// High-level text transformations
 		'markdown', 'smartypants', 'kirbytext', 'multiline', 'excerpt',
 		// String escaping (note that Twig as its own |escape filter)
@@ -128,16 +162,14 @@ class KirbyTwigComponent extends Kirby\Component\Template {
 	 * @return string
 	 */
 	private function renderTwig($file, $return = true) {
-
 		$debug = c::get('debug', false);
 		$dir   = $this->kirby->roots()->templates();
-		$cache = c::get('cache', false) and c::get('plugin.twig.cache', false) ?
-			     $this->kirby->roots()->cache() . DS . 'twig' : false;
+		$cache = $this->kirby->roots()->cache() . DS . 'twig';
 
 		$options  = [
 			'debug' => $debug,
-			'strict_variables' => $debug,
-			'cache' => $cache,
+			'strict_variables' => c::get('plugin.twig.strict', $debug),
+			'cache' => c::get('plugin.twig.cache', false) ? $cache : false,
 			'autoescape' => c::get('plugin.twig.autoescape', true)
 		];
 
@@ -147,36 +179,115 @@ class KirbyTwigComponent extends Kirby\Component\Template {
 		// Add the snippet helper and mark it as safe for HTML output
 		$twig->addFunction(new Twig_SimpleFunction('snippet', 'snippet', ['is_safe' => ['html']]));
 
+		// Add a config helper to retrieve config keys
+		$twig->addFunction(new Twig_SimpleFunction('config', 'c::get'));
+
 		// Plug in our selected list of helper functions
-		foreach ($this->toTwigFunctions as $name) {
-			$twig->addFunction(new Twig_SimpleFunction($name, $name));
+		foreach ($this->exposeFunctions as $name) {
+			if (is_string($name)) {
+				$twig->addFunction(new Twig_SimpleFunction($name, $name));
+			}
 		}
-		foreach ($this->toTwigFilters as $name) {
-			$twig->addFilter(new Twig_SimpleFilter($name, $name));
+		foreach ($this->exposeFilters as $name) {
+			if (is_string($name)) {
+				$twig->addFilter(new Twig_SimpleFilter($name, $name));
+			}
 		}
 
 		// Enable Twig’s dump function
 		if ($debug) $twig->addExtension(new Twig_Extension_Debug());
 
-		// Render the template (should we catch Twig_Error?)
-		$content = $twig->render( str_replace($dir, '', $file), Tpl::get() );
-		if ($return) return $content;
-		else echo $content;
+		// Render the template
+		try {
+			$path = str_replace($dir, '', $file);
+			$path = str_replace('\\', '/', $path);
+			$path = str_replace('//', '/', $path);
+			$path = preg_replace('/^\//', '', $path);
+			$content = $twig->render($path, Tpl::get());
+		}
+		catch(Twig_Error $e) {
+			$errorPages = [];
+			$customPage = c::get('plugin.twig.errorpage', '');
+			if ($customPage) $errorPages[] = $customPage;
+			$errorPages[] = c::get('error', 'error');
+			$content = $this->renderTwigError($e, $errorPages);
+		}
+
+		if ($return) {
+			return $content;
+		} else {
+			echo $content;
+			return null;
+		}
+	}
+
+	/**
+	 * Show an error page for a Twig_Error, with the faulty Twig code if we can.
+	 * If not in debug mode, show the error page if it exists, or a simpler message.
+	 *
+	 * @param Twig_Error $e
+	 * @param array $errorPages
+	 * @return mixed|Response
+	 */
+	private function renderTwigError(Twig_Error $e, $errorPages=['error']) {
+		$count = $this->renderTwigErrorCount;
+		$this->renderTwigErrorCount++;
+		$debug = c::get('debug', false);
+
+		// Return an error page if we have one. May cause infinite loops if rendering
+		// the error page also raises a Twig_Error, so let's check a counter.
+		if (!$debug and $count == 0) {
+			$errorPages = pages($errorPages);
+			if ($errorPages->count()) {
+				$response = new \Kirby\Component\Response($this->kirby);
+				return $response->make($errorPages->first());
+			}
+		}
+
+		// Or make a custom error page (with more information in debug mode)
+		$title = $debug ? get_class($e) : 'Error';
+		$message = $debug ? $e->getMessage() : 'An error occurred while rendering the template for this page.<br>Turn on the "debug" option for more information.';
+		$file = '';
+		$code = '';
+
+		// Get a few lines of code from the buggy template
+		if ($debug) {
+			$file = $this->kirby->roots->templates() . DS . $e->getTemplateFile();
+			if (F::isReadable($file)) {
+				$line  = $e->getTemplateLine();
+				$plus  = 4;
+				$twig  = Escape::html(F::read($file));
+				$lines = preg_split("/(\r\n|\n|\r)/", $twig);
+				$start = max(1, $line - $plus);
+				$limit = min(count($lines), $line + $plus);
+				$excerpt = [];
+				for ($i = $start - 1; $i < $limit; $i++) {
+					$attr = 'data-line="'.($i+1).'"';
+					if ($i === $line - 1) $excerpt[] = "<mark $attr>$lines[$i]</mark>";
+					else $excerpt[] = "<span $attr>$lines[$i]</span>";
+				}
+				$code = implode("\n", $excerpt);
+				// Small tweaks to the error message: move line number in subtitle
+				$file = $file . ':' . $line;
+				$message = $e->getRawMessage();
+			}
+		}
+
+		// Error page template
+		$html = Tpl::load(__DIR__ . DS . 'errortemplate.php', [
+			'title' => $title,
+			'message' => $message,
+			'file' => $file,
+			'code' => $code
+		]);
+		return new Response($html, 'html', 500);
 	}
 
 }
-
 
 // Only replace the Template component if Twig is installed
 // and enabled in the user’s config.
 
 if ($enabled) {
-	if (!class_exists('Twig_Environment')) {
-		if (file_exists($loader = __DIR__ . DS . 'vendor' . DS . 'autoload.php')) {
-			require_once $loader;
-		} else {
-			throw new Exception('Twig plugin: the Twig library was not installed. Run composer install.');
-		}
-	}
-	$kirby->set('component', 'template', 'KirbyTwigComponent');
+	kirby()->set('component', 'template', 'Kirby\Plugin\Twig\TwigComponent');
 }

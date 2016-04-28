@@ -27,8 +27,3 @@ Kirby’s API for `$page`, `$site`, etc. works well with Twig. See this example:
     </ul>
 {% endif %}
 ```
-
-
-## Kirby helper functions
-
-*To be written later, sorry.*
