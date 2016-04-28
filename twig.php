@@ -43,7 +43,7 @@ if ($enabled) {
  *
  * @package   Kirby CMS Twig Plugin
  * @author    Florens Verschelde <florens@fvsch.com>
- * @version   1.1.0
+ * @version   1.2.0
  */
 class TwigComponent extends \Kirby\Component\Template {
 
