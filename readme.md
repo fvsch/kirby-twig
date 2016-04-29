@@ -63,17 +63,21 @@ c::set('plugin.twig.enabled', true);
 // templates don't exist? Set to false to only allow Twig templates
 c::set('plugin.twig.usephp', true);
 
+// Kirby URI of a page to render when there is a Twig error in production
+// For instance 'error/system'. Falls back to c::get('error').
+c::set('plugin.twig.errorpage', '');
+
 // Use Twig’s PHP cache?
 // (Note that Kirby has its own HTML cache.)
 c::set('plugin.twig.cache', false);
 
+// Disable autoescaping or specify autoescaping type
+// http://twig.sensiolabs.org/doc/api.html#environment-options
+c::set('plugin.twig.autoescape', true);
+
 // Should Twig throw errors when using undefined variables or methods?
 // Defaults to the value of the 'debug' option
 c::set('plugin.twig.strict', c::get('debug', false));
-
-// Disable or specify autoescaping type
-// http://twig.sensiolabs.org/doc/api.html#environment-options
-c::set('plugin.twig.autoescape', true);
 ```
 
 
