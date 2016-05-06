@@ -2,8 +2,37 @@
 
 -   Adds support for [Twig templates](http://twig.sensiolabs.org/) to [Kirby CMS](https://getkirby.com/).
 -   Requires Kirby 2.3 (in beta as of 2016-04-12).
--   PHP templates still work, you don’t have to rewrite them if you don’t want to.
--   If you have two templates with the same name (`mytemplate.twig` and `mytemplate.php`), the Twig template is used.
+-   PHP templates still work, you don’t have to rewrite them if you don’t want to. (Note: if both `mytemplate.twig` and `mytemplate.php` exist, the Twig template is used.)
+
+## Example
+
+Here is a simple template example that extends a base layout and lists published child pages (for instance in a blog archive page):
+
+```twig
+{% extends 'layout.twig' %}
+
+{% set showNav = false %}
+{% set posts = page.children
+    .filterBy('status', 'published')
+    .sortBy('date', 'desc')
+    .limit(10)
+%}
+
+{% block content %}
+    <h1>{{ page.title }}</h1>
+    {% if page.intro.isNotEmpty %}
+        <div class="intro">
+            {{ page.intro.markdown | raw }}
+        </div>
+    {% endif %}
+
+    <ul>
+    {% for post in posts %}
+        <li><a href="{{ post.url }}">{{ post.title }}</a></li>
+    {% endfor %}
+    </ul>
+{% endblock %}
+```
 
 
 ## Installation
@@ -17,27 +46,6 @@ You will need [Composer](https://getcomposer.org/), a command-line tool, to inst
 You can now create `.twig` templates in your `site/templates` directory.
 
 See [Twig templating tips for Kirby](doc/templating.md) for help and advice on using Twig with Kirby.
-
-
-## How errors are shown
-
-With PHP templates, most errors are shown directly in the page. Things are a bit different with Twig: if an error is not suppressed, the template will *not* be rendered at all, and you end up with an error page.
-
-This plugin uses the value of the `debug` option (`c::get('debug')`) to know how strict it should be with errors and how much information to display.
-
-#### In production (no debug)
-
-1.  Undefined variables and methods are ignored, so they don’t raise an error.
-2.  For other errors, an error page will be shown, and it will have very little information about the source of the error (it doesn’t mention Twig, template names, etc.). We will show the error page (`c::get('error')`) if it exists, or a very short message otherwise.
-
-#### In debug mode
-
--   Undefined variables and methods raise an error (see the config section if you want to change that).
--   A nice error page is shown, with an excerpt of the faulty template code.
-
-<figure>
-    <img src="doc/errorpage.png" width="770" alt="">
-</figure>
 
 
 ## Options
@@ -75,3 +83,24 @@ c::set('plugin.twig.strict', c::get('debug', false));
 2.  Likewise, normal PHP functions are not available to Twig templates. If you want full PHP power, use PHP templates, or write [Controllers that send data to your templates](https://getkirby.com/docs/developer-guide/advanced/controllers). Note that Twig already gives you a lot of tools for working with strings and arrays: [Twig Reference](http://twig.sensiolabs.org/documentation#reference).
 
 3.  By design, Twig will *not* let you include files from outside the `site/templates` directory. If you have a use case where this is a problem, please open an issue.
+
+
+## Displaying errors
+
+With PHP templates, most errors are shown directly in the page. Things are a bit different with Twig: if an error is not suppressed, the template will *not* be rendered at all, and you end up with an error page.
+
+This plugin uses the value of the `debug` option (`c::get('debug')`) to know how strict it should be with errors and how much information to display.
+
+#### In production (no debug)
+
+1.  Undefined variables and methods are ignored, so they don’t raise an error.
+2.  For other errors, an error page will be shown, and it will have very little information about the source of the error (it doesn’t mention Twig, template names, etc.). We will show the error page (`c::get('error')`) if it exists, or a very short message otherwise.
+
+#### In debug mode
+
+-   Undefined variables and methods raise an error (see the config section if you want to change that).
+-   A nice error page is shown, with an excerpt of the faulty template code.
+
+<figure>
+    <img src="doc/errorpage.png" width="770" alt="">
+</figure>
