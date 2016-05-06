@@ -1,7 +1,9 @@
-<img src="doc/logos@1x.png" srcset="doc/logos@2x.png 2x" width="200" alt="">
-
 Twig Plugin for Kirby CMS
 =========================
+
+<figure>
+  <img src="doc/kirby-plus-twig.png" width="200" alt="">
+</figure>
 
 -   Adds support for [Twig templates](http://twig.sensiolabs.org/) to [Kirby CMS](https://getkirby.com/).
 -   Requires Kirby 2.3 (in beta as of 2016-04-12).
