@@ -1,8 +1,12 @@
-# Twig Plugin for Kirby CMS
+<img src="doc/logos@1x.png" srcset="doc/logos@2x.png 2x" width="200" alt="">
+
+Twig Plugin for Kirby CMS
+=========================
 
 -   Adds support for [Twig templates](http://twig.sensiolabs.org/) to [Kirby CMS](https://getkirby.com/).
 -   Requires Kirby 2.3 (in beta as of 2016-04-12).
 -   PHP templates still work, you don’t have to rewrite them if you don’t want to. (Note: if both `mytemplate.twig` and `mytemplate.php` exist, the Twig template is used.)
+
 
 ## Example
 
@@ -11,7 +15,6 @@ Here is a simple template example that extends a base layout and lists published
 ```twig
 {% extends 'layout.twig' %}
 
-{% set showNav = false %}
 {% set posts = page.children
     .filterBy('status', 'published')
     .sortBy('date', 'desc')
