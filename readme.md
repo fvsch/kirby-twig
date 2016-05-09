@@ -33,8 +33,8 @@ See [Twig templating tips for Kirby](doc/templating.md) for more examples, and s
 
 ## Installation
 
-1. Download a copy of this repository and put it in your `site/plugins` folder.
-2. Rename the copied folder to `twig`.
+1. Download [the latest release](https://github.com/fvsch/kirby-twig/releases) and put it in your `site/plugins` folder.
+2. Rename the copied folder to `twig` (it should be named `site/plugins/twig`).
 3. To activate the plugin, put `c::set('plugin.twig.enabled', true);` in your `site/config/config.php`.
 
 You can now create `.twig` templates in your `site/templates` directory.
