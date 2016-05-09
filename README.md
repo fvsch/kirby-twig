@@ -10,47 +10,34 @@ Twig Plugin for Kirby CMS
 -   PHP templates still work, you don’t have to rewrite them if you don’t want to. (Note: if both `mytemplate.twig` and `mytemplate.php` exist, the Twig template is used.)
 
 
-## Example
+## What it looks like
 
-Here is a simple template example that extends a base layout and lists published child pages (for instance in a blog archive page):
+Before:
+
+```php
+<?php /* site/templates/hello.php */ ?>
+<h1><?php echo $page->title() ?></h1>
+<?php echo $page->text()->markdown() ?>
+```
+
+After:
 
 ```twig
-{% extends 'layout.twig' %}
-
-{% set posts = page.children
-    .filterBy('status', 'published')
-    .sortBy('date', 'desc')
-    .limit(10)
-%}
-
-{% block content %}
-    <h1>{{ page.title }}</h1>
-    {% if page.intro.isNotEmpty %}
-        <div class="intro">
-            {{ page.intro.markdown | raw }}
-        </div>
-    {% endif %}
-
-    <ul>
-    {% for post in posts %}
-        <li><a href="{{ post.url }}">{{ post.title }}</a></li>
-    {% endfor %}
-    </ul>
-{% endblock %}
+{# site/templates/hello.twig #}
+<h1>{{ page.title }}</h1>
+{{ page.text.markdown | raw }}
 ```
+
+See [Twig templating tips for Kirby](doc/templating.md) for more examples, and some advice on using Twig with Kirby.
 
 
 ## Installation
 
-You will need [Composer](https://getcomposer.org/), a command-line tool, to install this plugin.
-
-1. Download a copy of this repository and put it in your `site/plugins` folder. Rename the copied folder to `twig`.
-2. Open a terminal in your `site/plugins/twig` folder and run `composer install`.
-3. To activate the plugin, put `c::set('plugin.twig.enabled', true);` in your `config.php`.
+1. Download a copy of this repository and put it in your `site/plugins` folder.
+2. Rename the copied folder to `twig`.
+3. To activate the plugin, put `c::set('plugin.twig.enabled', true);` in your `site/config/config.php`.
 
 You can now create `.twig` templates in your `site/templates` directory.
-
-See [Twig templating tips for Kirby](doc/templating.md) for help and advice on using Twig with Kirby.
 
 
 ## Options
@@ -85,9 +72,7 @@ c::set('plugin.twig.strict', c::get('debug', false));
 
 1.  Only a subset of Kirby’s functions and helpers are exposed to Twig templates. The `$page`, `$pages` and `$site` objects are available (as `page`, `pages` and `site`), but only a fraction of Kirby’s many helper functions are. See [doc/templating.md](doc/templating.md) for more info.
 
-2.  Likewise, normal PHP functions are not available to Twig templates. If you want full PHP power, use PHP templates, or write [Controllers that send data to your templates](https://getkirby.com/docs/developer-guide/advanced/controllers). Note that Twig already gives you a lot of tools for working with strings and arrays: [Twig Reference](http://twig.sensiolabs.org/documentation#reference).
-
-3.  By design, Twig will *not* let you include files from outside the `site/templates` directory. If you have a use case where this is a problem, please open an issue.
+2.  By design, Twig will *not* let you include files from outside the `site/templates` directory (except with the `snippet()` function). If you have a use case where this is a problem, please open an issue.
 
 
 ## Displaying errors
@@ -109,3 +94,15 @@ This plugin uses the value of the `debug` option (`c::get('debug')`) to know how
 <figure>
     <img src="doc/errorpage.png" width="770" alt="">
 </figure>
+
+
+## Alternative installation methods
+
+-   Installing with the [Kirby CLI](https://github.com/getkirby/cli) should work, but hasn’t been tested yet.
+-   If you wish to install with Composer instead, see [Installing with Composer](doc/composer.md).
+
+
+## License
+
+-   This script: [MIT License](LICENSE)
+-   Twig library: see [lib/Twig/LICENSE](lib/Twig/LICENSE)

@@ -1,0 +1,7 @@
+{
+  "name": "twig",
+  "version": "1.3.0",
+  "description": "Kirby Twig Plugin",
+  "license": "MIT",
+  "type": "kirby-plugin"
+}

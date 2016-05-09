@@ -19,17 +19,17 @@ use Twig_Error;
 
 
 $enabled = C::get('plugin.twig.enabled', false);
-$loader  = __DIR__ . DS . 'vendor' . DS . 'autoload.php';
 
 if ($enabled) {
 	if (!class_exists('Kirby\Component\Template')) {
 		throw new Exception('Twig plugin requires Kirby 2.3 or higher. Current version: ' . kirby()->version());
 	}
 	if (!class_exists('Twig_Environment')) {
-		if (file_exists($loader)) {
+		if (file_exists($loader = __DIR__.DS.'lib'.DS.'Twig'.DS.'Autoloader.php')) {
 			require_once $loader;
+			\Twig_Autoloader::register();
 		} else {
-			throw new Exception('Twig plugin: the Twig library was not installed. Run composer install.');
+			throw new Exception('Twig plugin: cannot find the Twig library');
 		}
 	}
 }
@@ -41,9 +41,9 @@ if ($enabled) {
  * This component class extends Kirby’s built-in Kirby\Component\Template
  * class and replaces it’s render method.
  *
- * @package   Kirby CMS Twig Plugin
+ * @package   Kirby Twig Plugin
  * @author    Florens Verschelde <florens@fvsch.com>
- * @version   1.2.0
+ * @version   1.3.0
  */
 class TwigComponent extends \Kirby\Component\Template {
 
@@ -72,8 +72,6 @@ class TwigComponent extends \Kirby\Component\Template {
 		'youtube', 'vimeo', 'twitter', 'gist',
 		// URL and request stuff
 		'get', 'thisUrl', 'param', 'params',
-		// Parsing strings
-		'yaml',
 		// Getting Kirby pages
 		'page', 'pages',
 		// Debug
@@ -274,7 +272,7 @@ class TwigComponent extends \Kirby\Component\Template {
 		}
 
 		// Error page template
-		$html = Tpl::load(__DIR__ . DS . 'errortemplate.php', [
+		$html = Tpl::load(__DIR__ . DS . 'templates' . DS . 'twigerror.php', [
 			'title' => $title,
 			'message' => $message,
 			'file' => $file,
