@@ -5,9 +5,8 @@ Twig Plugin for Kirby CMS
   <img src="doc/kirby-plus-twig.png" width="200" alt="">
 </figure>
 
--   Adds support for [Twig templates](http://twig.sensiolabs.org/) to [Kirby CMS](https://getkirby.com/).
--   Requires Kirby 2.3 (in beta as of 2016-04-12).
--   PHP templates still work, you don’t have to rewrite them if you don’t want to. (Note: if both `mytemplate.twig` and `mytemplate.php` exist, the Twig template is used.)
+-   Adds support for [Twig templates](http://twig.sensiolabs.org/) to [Kirby CMS](https://getkirby.com/) (2.3+).
+-   PHP templates still work, you don’t have to rewrite them if you don’t want to.
 
 
 What it looks like
@@ -29,6 +28,8 @@ After:
 {{ page.text.markdown | raw }}
 ```
 
+See [Twig templating tips for Kirby](doc/templating.md) for examples and some advice on using Twig with Kirby.
+
 
 Installation
 ------------
@@ -46,8 +47,6 @@ For manual installation:
 3. To activate the plugin, put `c::set('twig', true);` in your `site/config/config.php`.
 
 You can now create `.twig` templates in your `site/templates` directory.
-
-See [Twig templating tips for Kirby](doc/templating.md) for examples and some advice on using Twig with Kirby.
 
 
 Options
@@ -81,18 +80,11 @@ c::set('twig.strict', c::get('debug', false));
 c::set('twig.env.functions', ['myCustomFunction']);
 
 // List of classes that can be instantiated from templates (with the `new()` function)
-c::set('twig.env.functions', ['SomeClass']);
+c::set('twig.env.classes', ['SomeClass']);
 ```
 
-
-## Known limitations
-
-1.  Only a subset of Kirby’s functions and helpers are exposed to Twig templates. The `$page`, `$pages` and `$site` objects are available (as `page`, `pages` and `site`), but only a fraction of Kirby’s many helper functions are. See [doc/templating.md](doc/templating.md) for more info.
-
-2.  By design, Twig will *not* let you include files from outside the `site/templates` directory (except with the `snippet()` function). If you have a use case where this is a problem, please open an issue.
-
-
-## Displaying errors
+Displaying errors
+-----------------
 
 With PHP templates, most errors are shown directly in the page. Things are a bit different with Twig: if an error is not suppressed, the template will *not* be rendered at all, and you end up with an error page.
 
@@ -113,13 +105,8 @@ This plugin uses the value of the `debug` option (`c::get('debug')`) to know how
 </figure>
 
 
-## Alternative installation methods
-
--   Installing with the [Kirby CLI](https://github.com/getkirby/cli) should work, but hasn’t been tested yet.
--   If you wish to install with Composer instead, see [Installing with Composer](doc/composer.md).
-
-
-## License
+Credits
+-------
 
 -   This script: [MIT License](LICENSE)
--   Twig library: see [lib/Twig/LICENSE](lib/Twig/LICENSE)
+-   Twig library by Fabien Potencier and contributors / New BSD License ([lib/Twig/LICENSE](lib/Twig/LICENSE))
