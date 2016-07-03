@@ -247,6 +247,26 @@ class TwigComponent extends Template {
 			$twig->addFunction(new Twig_SimpleFunction($twigName, $callName, $params));
 		}
 
+		// Add the 'new' function that allows instantiating a whitelist of classes
+		$classes = array_filter(c::get('twig.env.classes', []), 'is_string');
+		$twig->addFunction(new Twig_SimpleFunction('new', function($name) use ($classes) {
+			$args = array_slice(func_get_args(), 1);
+			if (!is_string($name)) {
+				throw new Twig_Error_Runtime("Function \"new\" needs a class name (string) as first parameter");
+			}
+			if (!in_array($name, $classes)) {
+				throw new Twig_Error_Runtime("Class \"$name\" is not allowed in option \"twig.env.classes\"");
+			}
+			if (!class_exists($name)) {
+				throw new Twig_Error_Runtime("Unknown class \"$name\"");
+			}
+			if (count($args) > 0) {
+				$reflected = new ReflectionClass($name);
+				return $reflected->newInstanceArgs($args);
+			}
+			return new $name;
+		}));
+
 		return $this->twig = $twig;
 	}
 
