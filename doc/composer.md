@@ -1,6 +1,6 @@
 # Installing with Composer
 
-Kirby itself doesn’t use [Composer](https://getcomposer.org/) and many Kirby-based projects are not set up to use Composer. This is why this plugin includes [the Twig library](http://twig.sensiolabs.org/).
+Kirby itself doesn’t use [Composer](https://getcomposer.org/) and many Kirby-based projects are not set up to use Composer. This is why this plugin bundles a copy of [the Twig library](http://twig.sensiolabs.org/).
 
 
 ## Installing Twig with Composer

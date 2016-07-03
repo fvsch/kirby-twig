@@ -4,7 +4,8 @@ Twig templating in Kirby
 This is a short guide of how to use Twig templates with Kirby CMS. It supposes that you have installed and configured the Twig Plugin already.
 
 
-## Twig basics
+Twig basics
+-----------
 
 A few basic examples of Twig syntax:
 
@@ -34,7 +35,8 @@ A few basic examples of Twig syntax:
 If you don’t know Twig already, you should read [Twig for Template Designers](http://twig.sensiolabs.org/doc/templates.html).
 
 
-## Twig tips and tricks
+Tips and tricks
+---------------
 
 ### Undefined variables
 
@@ -48,6 +50,11 @@ Trying to use a variable that doesn’t exist will result in an error. If you’
 
 {# Safer: #}
 {% if description|default('') %}
+    <meta name="description" value="{{ description }}">
+{% endif %}
+
+{# You can also use this syntax: #}
+{% if description ?? '' %}
     <meta name="description" value="{{ description }}">
 {% endif %}
 ```
@@ -66,7 +73,10 @@ By default, Twig will escape HTML tags and entities (to help prevent [cross-site
 ```
 
 
-## What variables can I use?
+Kirby-specific variables and functions
+--------------------------------------
+
+### Objects
 
 The following variables are always available in templates (note that we’re using Twig notation for variables and object methods):
 
@@ -99,10 +109,29 @@ For instance we could work with the `site` object to retrieve all child pages of
 
 You can use all of [Kirby’s chaining API](https://getkirby.com/docs/templates/api) for `$page`, `$site`, etc. in your Twig templates, and often that’s all you will ever need.
 
+### Helper functions
 
-## Using controllers
+Almost all of [Kirby’s helper functions](https://getkirby.com/docs/cheatsheet#helpers) are available in your Twig templates. This includes things like the `css()`, `js()` or `snippet()` functions.
 
-You can send more information to templates by [writing a Controller](https://getkirby.com/docs/developer-guide/advanced/controllers). Don’t worry, it’s really easy.
+The few exceptions are:
+
+-   helpers related to sending emails or writing to files, such as `email`, `upload`, `structure` and `textfile`;
+-   and the `ecco` and `r` helpers, which are trivial to do with Twig syntax (for instance: `{{ condition ? 'yes' : 'no' }}` is the same as Kirby’s `<?php ecco(condition, 'yes', 'no') ?>`.
+
+### Getting config values
+
+-   Use the `c(configName, defaultValue)` function in Twig templates to get config values (shortcut for `c::get`).
+-   Use the `l(configName, defaultValue)` funciton in Twig templates to get language-specific config values or translation strings (shortcut for `l::get`).
+
+### Kirby Toolkit
+
+The [Kirby Toolkit API](https://getkirby.com/docs/toolkit/api) is not available in Twig templates. Some methods, such as string comparisons, can be done directly with Twig syntax. Other things, like reading from a database, should probably be done in a controller instead.
+
+
+Using controllers
+-----------------
+
+You can send more data to templates by [writing a Controller](https://getkirby.com/docs/developer-guide/advanced/controllers). Don’t worry, it’s really easy.
 
 In the previous example, the part where we defined the `posts` variable could go in a controller file:
 
@@ -137,35 +166,83 @@ And in our template:
 Ain’t that better? Well, you decide. :) I like separating the “logic” from the HTML markup, but if you just want to write a template and be done, do what you like best.
 
 
-## Using custom PHP functions in Twig
 
-Unlike with PHP templates, you won’t have access to any function or class defined in a plugin file. Twig needs every function to be passed explicitely to the template, which can be a bit bothersome.
+Exposing functions and classes to Twig templates
+------------------------------------------------
 
-### You might not need it?
+If you need to expose more PHP functions or classes to your Twig templates, you can list them with those two options:
 
-I’ve found that it’s not a big deal in Kirby because:
+-   `twig.env.functions` (for functions or static methods of classes)
+-   `twig.env.classes` (for classes, which must be instantiated with a `new()` Twig function)
 
--   For important logic, writing a controller and returning some data to the template is better than doing everything in the template anyway.
--   It’s possible to extend the `$page` and `$site` objects with your own methods, which covers a lot of ground.
+### Exposing a function
 
-If you still need a way to pass a function or PHP class to your templates, please [open an issue](https://github.com/fvsch/kirby-twig/issues).
+For example if you have a custom function defined in your own plugin file:
 
-### Kirby helper functions
+```php
+<?php // site/plugins/myplugin.php
 
-Kirby provides [many helper functions](https://getkirby.com/docs/cheatsheet#helpers), plus the [Kirby Toolkit](https://getkirby.com/docs/toolkit/api), that can be used in templates (and in controllers and plugins).
+function myFunction() {
+    return 'Hello';
+}
+```
 
-Only some of them are made vailable to Twig templates:
+You could tell the Twig plugin to make it available in your templates:
 
--   Generating HTML tags: `css()`, `js()`, `kirbytag()`
--   Service-specific tags: `youtube()`, `vimeo()`, `twitter()`, `gist()`
--   URL and request stuff: `get()`, `thisUrl()`, `param()`, `params()`
--   Getting Kirby pages: `page()`, `pages()`
--   Getting a config value: `config()` (alias for `c::get()`)
+```php
+<?php // site/config/config.php
+c::set('twig.env.functions', ['myFunction']);
+```
 
-Some functions are made as Twig filters:
+```twig
+{# Prints 'Hello' #}
+{{ myFunction() }}
+```
 
--   Text transformations: `markdown`, `smartypants`, `kirbytext`, `multiline`, `excerpt`
--   String escaping: `html`, `xml`
--   String enhancement: `url`, `gravatar`
+### Exposing static methods
 
-If you think something *should* be added, please [open an issue](https://github.com/fvsch/kirby-twig/issues).
+If you just need a couple static methods, you can use the same solution:
+
+```php
+<?php // site/config/config.php
+c::set('twig.env.functions', ['cookie::set', 'cookie::get']);
+```
+
+Note that the `::` will be replaced by two underscores (`__`).
+
+```twig
+{% do cookie__set('test', 'real value') %}
+
+{# Prints 'real value' #}
+{{ cookie__get('test', 'fallback') }}
+```
+
+### Exposing and using classes
+
+First you need to whitelist the class(es) you want to be able to instantiate:
+
+```php
+<?php // site/config/config.php
+c::set('twig.env.classes', ['cookie', 'str']);
+```
+
+You can now use the `new()` *function* to instantiate a class.
+
+```twig
+{% set cookie = new('cookie') %}
+{% do cookie.set('test', 'real value') %}
+
+{# Prints 'real value' #}
+{{ cookie.get('test', 'fallback') }}
+
+{# Prints 'salut-ca-va' #}
+{{ new('str').slug('Salut ça va?') }}
+```
+
+If the class constructor takes parameters, you can provide them after the first parameter:
+
+```twig
+{% set something = new('something', param1, param2) %}
+```
+
+Finally, note that you probably *should not need to use classes* in templates. If you have a lot of programming-like work to do in a template, you should probably do that work in a controller instead.
