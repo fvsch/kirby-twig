@@ -15,9 +15,10 @@ use Twig_Loader_Filesystem;
 use Twig_SimpleFunction;
 use Twig_Extension_Debug;
 use Twig_Error;
+use Twig_Error_Runtime;
 
 
-$enabled = C::get('plugin.twig.enabled', false);
+$enabled = c::get('twig', false);
 
 if ($enabled) {
 	if (!class_exists('Kirby\Component\Template')) {
@@ -47,6 +48,11 @@ if ($enabled) {
 class TwigComponent extends Template {
 
 	/**
+	 * Cache the Twig_Environment
+	 */
+	private $twig = null;
+
+	/**
 	 * How many times we have tried to render a page through Kirby
 	 * (hence possibly through Twig) from the renderTwigError method.
 	 */
@@ -67,6 +73,7 @@ class TwigComponent extends Template {
 	private $exposedHelpers = [
 		'*attr',
 		'*brick',
+		// Skipping: call - Allows calling any PHP function
 		'csrf',
 		'*css',
 		// Skipping: dump - Twig has one, and its ouput seems buggy anyway (prints the result twice?)
@@ -85,7 +92,7 @@ class TwigComponent extends Template {
 		'kirby',
 		'*kirbytag',
 		'*kirbytext',
-		'*l',
+		// Skipping: l - We're adding it manually
 		'*markdown',
 		'memory',
 		'*multiline',
@@ -109,7 +116,7 @@ class TwigComponent extends Template {
 		'*widont',
 		'*xml',
 		'yaml',
-		'*youtube'
+		'*youtube',
 	];
 
 	/**
@@ -119,7 +126,7 @@ class TwigComponent extends Template {
 	 * @return string
 	 */
 	public function file($name) {
-		$usephp = c::get('plugin.twig.usephp', true);
+		$usephp = c::get('twig.usephp', true);
 		$base = $this->kirby->roots()->templates() . DS . str_replace('/', DS, $name);
 		$twig = $base . '.twig';
 		$php  = $base . '.php';
@@ -178,50 +185,19 @@ class TwigComponent extends Template {
 	 * @return string
 	 */
 	private function renderTwig($file, $return = true) {
-		$debug = c::get('debug', false);
-		$dir   = $this->kirby->roots()->templates();
-		$cache = $this->kirby->roots()->cache() . DS . 'twig';
+		$dir = $this->kirby->roots()->templates();
 
-		$options  = [
-			'debug' => $debug,
-			'strict_variables' => c::get('plugin.twig.strict', $debug),
-			'cache' => c::get('plugin.twig.cache', false) ? $cache : false,
-			'autoescape' => c::get('plugin.twig.autoescape', true)
-		];
-
-		// Start up Twig
-		$twig = new Twig_Environment(new Twig_Loader_Filesystem($dir), $options);
-
-		// Add functions to retrieve config keys
-		$twig->addFunction(new Twig_SimpleFunction('c', 'c::get'));
-		$twig->addFunction(new Twig_SimpleFunction('l', 'l::get'));
-
-		// Plug in our selected list of helper functions
-		foreach ($this->exposedHelpers as $name) {
-			$clean = trim($name, '* ');
-			$param = strpos($name, '*') !== false ? ['is_safe' => ['html']] : [];
-			if (is_callable($clean)) {
-				$twig->addFunction(new Twig_SimpleFunction($clean, $clean, $param));
-			}
-		}
-
-		// Enable Twig’s dump function
-		if ($debug) $twig->addExtension(new Twig_Extension_Debug());
-
-		// Render the template
 		try {
-			$path = str_replace($dir, '', $file);
-			$path = str_replace('\\', '/', $path);
-			$path = str_replace('//', '/', $path);
-			$path = preg_replace('/^\//', '', $path);
-			$content = $twig->render($path, Tpl::get());
+			$env = $this->getTwigEnv($dir);
+			$rawPath = str_replace($dir, '', $file);
+			$path = ltrim( preg_replace('#[\\\/]+#', '/', $rawPath), '/');
+			$content = $env->render($path, Tpl::get());
 		}
-		catch(Twig_Error $e) {
-			$errorPages = [];
-			$customPage = c::get('plugin.twig.errorpage', '');
-			if ($customPage) $errorPages[] = $customPage;
-			$errorPages[] = c::get('error', 'error');
-			$content = $this->renderTwigError($e, $errorPages);
+		catch(Exception $err) {
+			$content = $this->renderTwigError($err, array_filter([
+				c::get('twig.error', null),
+				c::get('error', 'error')
+			]));
 		}
 
 		if ($return) {
@@ -233,16 +209,57 @@ class TwigComponent extends Template {
 	}
 
 	/**
+	 * Prepare the Twig environment
+	 */
+	private function getTwigEnv() {
+		if (is_a($this->twig, 'Twig_Environment')) {
+			return $this->twig;
+		}
+
+		$debug = c::get('debug', false);
+		$templateDir = $this->kirby->roots()->templates();
+		$cacheDir = $this->kirby->roots()->cache() . DS . 'twig';
+
+		$options  = [
+			'debug' => $debug,
+			'strict_variables' => c::get('twig.strict', $debug),
+			'cache' => c::get('twig.cache', false) ? $cacheDir : false,
+			'autoescape' => c::get('twig.autoescape', true)
+		];
+
+		// Start up Twig
+		$twig = new Twig_Environment(new Twig_Loader_Filesystem($templateDir), $options);
+
+		// Enable Twig’s dump function
+		$twig->addExtension(new Twig_Extension_Debug());
+
+		// Add functions to retrieve config keys
+		$twig->addFunction(new Twig_SimpleFunction('c', 'c::get'));
+		$twig->addFunction(new Twig_SimpleFunction('l', 'l::get'));
+
+		// Plug in our selected list of helper functions
+		$functions = array_merge($this->exposedHelpers, c::get('twig.env.functions', []));
+		foreach (array_filter($functions, 'is_string') as $name) {
+			$callName = trim($name, '* ');
+			if (!is_callable($callName)) continue;
+			$twigName = str_replace('::', '__', $callName);
+			$params = strpos($name, '*') !== false ? ['is_safe' => ['html']] : [];
+			$twig->addFunction(new Twig_SimpleFunction($twigName, $callName, $params));
+		}
+
+		return $this->twig = $twig;
+	}
+
+	/**
 	 * Show an error page for a Twig_Error, with the faulty Twig code if we can.
 	 * If not in debug mode, show the error page if it exists, or a simpler message.
 	 *
-	 * @param Twig_Error $e
+	 * @param Twig_Error $err
 	 * @param array $errorPages
 	 * @return mixed|Response
 	 */
-	private function renderTwigError(Twig_Error $e, $errorPages=['error']) {
-		$count = $this->renderTwigErrorCount;
-		$this->renderTwigErrorCount++;
+	private function renderTwigError(Twig_Error $err, $errorPages=['error']) {
+		$count = $this->renderTwigErrorCount++;
 		$debug = c::get('debug', false);
 
 		// Return an error page if we have one. May cause infinite loops if rendering
@@ -256,17 +273,17 @@ class TwigComponent extends Template {
 		}
 
 		// Or make a custom error page (with more information in debug mode)
-		$title = $debug ? get_class($e) : 'Error';
-		$message = $debug ? $e->getMessage() : 'An error occurred while rendering the template for this page.<br>Turn on the "debug" option for more information.';
+		$title = $debug ? get_class($err) : 'Error';
+		$message = $debug ? $err->getMessage() : 'An error occurred while rendering the template for this page.<br>Turn on the "debug" option for more information.';
 		$file = '';
 		$code = '';
 
 		// Get a few lines of code from the buggy template
 		if ($debug) {
-			$file = $this->kirby->roots->templates() . DS . $e->getTemplateFile();
+			$file = $this->kirby->roots->templates() . DS . $err->getTemplateFile();
 			if (F::isReadable($file)) {
-				$line  = $e->getTemplateLine();
-				$plus  = 4;
+				$line  = $err->getTemplateLine();
+				$plus  = 6;
 				$twig  = Escape::html(F::read($file));
 				$lines = preg_split("/(\r\n|\n|\r)/", $twig);
 				$start = max(1, $line - $plus);
@@ -280,7 +297,7 @@ class TwigComponent extends Template {
 				$code = implode("\n", $excerpt);
 				// Small tweaks to the error message: move line number in subtitle
 				$file = $file . ':' . $line;
-				$message = $e->getRawMessage();
+				$message = $err->getRawMessage();
 			}
 		}
 

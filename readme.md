@@ -10,7 +10,8 @@ Twig Plugin for Kirby CMS
 -   PHP templates still work, you don’t have to rewrite them if you don’t want to. (Note: if both `mytemplate.twig` and `mytemplate.php` exist, the Twig template is used.)
 
 
-## What it looks like
+What it looks like
+------------------
 
 Before:
 
@@ -28,43 +29,59 @@ After:
 {{ page.text.markdown | raw }}
 ```
 
-See [Twig templating tips for Kirby](doc/templating.md) for more examples, and some advice on using Twig with Kirby.
 
+Installation
+------------
 
-## Installation
+If you’re using [Kirby’s CLI](https://github.com/getkirby/cli), you can install with:
+
+```
+kirby plugin:install fvsch/kirby-twig
+```
+
+For manual installation:
 
 1. Download [the latest release](https://github.com/fvsch/kirby-twig/releases) and put it in your `site/plugins` folder.
 2. Rename the copied folder to `twig` (it should be named `site/plugins/twig`).
-3. To activate the plugin, put `c::set('plugin.twig.enabled', true);` in your `site/config/config.php`.
+3. To activate the plugin, put `c::set('twig', true);` in your `site/config/config.php`.
 
 You can now create `.twig` templates in your `site/templates` directory.
 
+See [Twig templating tips for Kirby](doc/templating.md) for examples and some advice on using Twig with Kirby.
 
-## Options
+
+Options
+-------
 
 ```php
 // REQUIRED: activate Twig plugin
-c::set('plugin.twig.enabled', true);
+c::set('twig', true);
 
 // Should we use .php templates as fallback when .twig
 // templates don't exist? Set to false to only allow Twig templates
-c::set('plugin.twig.usephp', true);
+c::set('twig.usephp', true);
 
 // Kirby URI of a page to render when there is a Twig error in production
 // For instance 'error/system'. Falls back to c::get('error').
-c::set('plugin.twig.errorpage', '');
+c::set('twig.error', '');
 
 // Use Twig’s PHP cache?
 // (Note that Kirby has its own HTML cache.)
-c::set('plugin.twig.cache', false);
+c::set('twig.cache', false);
 
 // Disable autoescaping or specify autoescaping type
 // http://twig.sensiolabs.org/doc/api.html#environment-options
-c::set('plugin.twig.autoescape', true);
+c::set('twig.autoescape', true);
 
 // Should Twig throw errors when using undefined variables or methods?
 // Defaults to the value of the 'debug' option
-c::set('plugin.twig.strict', c::get('debug', false));
+c::set('twig.strict', c::get('debug', false));
+
+// List of additional functions that should be available in templates
+c::set('twig.env.functions', ['myCustomFunction']);
+
+// List of classes that can be instantiated from templates (with the `new()` function)
+c::set('twig.env.functions', ['SomeClass']);
 ```
 
 
