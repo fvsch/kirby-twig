@@ -6,14 +6,13 @@ use C;
 use Escape;
 use Exception;
 use F;
+use Kirby\Component\Template;
 use Page;
 use Response;
 use Tpl;
-
 use Twig_Environment;
 use Twig_Loader_Filesystem;
 use Twig_SimpleFunction;
-use Twig_SimpleFilter;
 use Twig_Extension_Debug;
 use Twig_Error;
 
@@ -45,7 +44,7 @@ if ($enabled) {
  * @author    Florens Verschelde <florens@fvsch.com>
  * @version   1.3.0
  */
-class TwigComponent extends \Kirby\Component\Template {
+class TwigComponent extends Template {
 
 	/**
 	 * How many times we have tried to render a page through Kirby
