@@ -53,44 +53,63 @@ class TwigComponent extends Template {
 	private $renderTwigErrorCount = 0;
 
 	/**
-	 * Kirby Helper functions to expose as simple Twig functions
+	 * Kirby helper functions to expose as simple Twig functions
 	 *
-	 * This is purposefuly a subset of https://getkirby.com/docs/cheatsheet#helpers
-	 * and a even stricter subset of https://getkirby.com/docs/toolkit/api#helpers
-	 * It’s limited to things helpful for HTML templating. (For example the csrf() helper is
-	 * not used, since checking for cross-site reequest forgery is better left to a controller!)
+	 * We're exposing all helper functions documented in
+	 * https://getkirby.com/docs/cheatsheet#helpers
+	 * with just a few exceptions (sending email, saving files…)
 	 *
-	 * Use Twig functions for: helpers that build a HTML tag or retrieve some data.
-	 *
-	 * @var array
-	 */
-	private $exposeFunctions = [
-		// HTML tags generators
-		'css', 'js', 'kirbytag',
-		// Service-specific HTML generation
-		'youtube', 'vimeo', 'twitter', 'gist',
-		// URL and request stuff
-		'get', 'thisUrl', 'param', 'params',
-		// Getting Kirby pages
-		'page', 'pages',
-		// Debug
-		'memory'
-	];
-
-	/**
-	 * Kirby Helper functions to expose as simple Twig filters
-	 *
-	 * Use Twig filters for: helpers that transforms a string to a string
+	 * Prefix the function name with '*' to mark the
+	 * function's output as safe (avoiding HTML escaping).
 	 *
 	 * @var array
 	 */
-	private $exposeFilters = [
-		// High-level text transformations
-		'markdown', 'smartypants', 'kirbytext', 'multiline', 'excerpt',
-		// String escaping (note that Twig as its own |escape filter)
-		'html', 'xml',
-		// String building
-		'url', 'gravatar'
+	private $exposedHelpers = [
+		'*attr',
+		'*brick',
+		'csrf',
+		'*css',
+		// Skipping: dump - Twig has one, and its ouput seems buggy anyway (prints the result twice?)
+		// Skipping: e, ecco - Twig syntax is simple: {{ condition ? 'a' : 'b' }}
+		// Skipping: email - Send emails from controllers, not templates
+		'*esc',
+		'*excerpt',
+		'get',
+		'*gist',
+		'go',
+		'gravatar',
+		'*h', '*html',
+		'*image',
+		'invalid',
+		'*js',
+		'kirby',
+		'*kirbytag',
+		'*kirbytext',
+		'*l',
+		'*markdown',
+		'memory',
+		'*multiline',
+		'page',
+		'pages',
+		'param',
+		'params',
+		// Skipping: r - Same reason as for ecco/e
+		'site',
+		'size',
+		'*smartypants',
+		'*snippet',
+		// Skipping: structure - For writing data to pages, not for display
+		// Skipping: textfile - For making content file names
+		'thisUrl',
+		'*thumb',
+		'*twitter',
+		// Skipping: upload - Manage uploading from a controller
+		'u', 'url',
+		'*vimeo',
+		'*widont',
+		'*xml',
+		'yaml',
+		'*youtube'
 	];
 
 	/**
@@ -173,21 +192,16 @@ class TwigComponent extends Template {
 		// Start up Twig
 		$twig = new Twig_Environment(new Twig_Loader_Filesystem($dir), $options);
 
-		// Add the snippet helper and mark it as safe for HTML output
-		$twig->addFunction(new Twig_SimpleFunction('snippet', 'snippet', ['is_safe' => ['html']]));
-
-		// Add a config helper to retrieve config keys
-		$twig->addFunction(new Twig_SimpleFunction('config', 'c::get'));
+		// Add functions to retrieve config keys
+		$twig->addFunction(new Twig_SimpleFunction('c', 'c::get'));
+		$twig->addFunction(new Twig_SimpleFunction('l', 'l::get'));
 
 		// Plug in our selected list of helper functions
-		foreach ($this->exposeFunctions as $name) {
-			if (is_string($name)) {
-				$twig->addFunction(new Twig_SimpleFunction($name, $name));
-			}
-		}
-		foreach ($this->exposeFilters as $name) {
-			if (is_string($name)) {
-				$twig->addFilter(new Twig_SimpleFilter($name, $name));
+		foreach ($this->exposedHelpers as $name) {
+			$clean = trim($name, '* ');
+			$param = strpos($name, '*') !== false ? ['is_safe' => ['html']] : [];
+			if (is_callable($clean)) {
+				$twig->addFunction(new Twig_SimpleFunction($clean, $clean, $param));
 			}
 		}
 
