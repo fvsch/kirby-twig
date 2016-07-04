@@ -28,8 +28,6 @@ After:
 {{ page.text.markdown | raw }}
 ```
 
-See [Twig templating tips for Kirby](doc/templating.md) for examples and some advice on using Twig with Kirby.
-
 
 Installation
 ------------
@@ -47,6 +45,12 @@ For manual installation:
 3. To activate the plugin, put `c::set('twig', true);` in your `site/config/config.php`.
 
 You can now create `.twig` templates in your `site/templates` directory.
+
+
+Getting started with Twig
+-------------------------
+
+See [Twig templating tips for Kirby](doc/templating.md) for examples and some advice on using Twig with Kirby.
 
 
 Options
