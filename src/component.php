@@ -201,7 +201,7 @@ class TwigComponent extends Template {
 
 		$debug = c::get('debug', false);
 		$templateDir = $this->kirby->roots()->templates();
-		$cacheDir = $this->kirby->roots()->cache() . DS . 'twig';
+		$cacheDir = $this->kirby->roots()->cache() . '/twig';
 
 		$options  = [
 			'debug' => $debug,
@@ -305,7 +305,7 @@ class TwigComponent extends Template {
 		}
 
 		// Error page template
-		$html = Tpl::load(__DIR__ . DS . 'templates' . DS . 'twigerror.php', [
+		$html = Tpl::load(__DIR__ . '/errorpage.php', [
 			'title' => $title,
 			'message' => $message,
 			'file' => $file,

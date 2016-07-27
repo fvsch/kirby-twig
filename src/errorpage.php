@@ -28,16 +28,21 @@
 		margin: -.75rem 0 1rem;
 		font-size: 100%;
 		line-height: 1.3;
+		font-weight: normal;
 		font-family: monospace, monospace;
-		color: #909090;
+		color: #707070;
 	}
 	p {
 		margin: .5rem 0;
+	}
+	pre, code {
+		font-family: monospace, monospace;
 	}
 	pre {
 		margin: 0;
 		padding: 1.5rem;
 		white-space: pre-wrap;
+		font-size: 90%;
 		-webkit-tab-size: 4;
 		-moz-tab-size: 4;
 		tab-size: 4;
@@ -57,7 +62,7 @@
 			padding: 1em;
 		}
 		body {
-			width: 48em;
+			width: 54em;
 			max-width: 100%;
 			margin: 1em auto;
 			border: solid 1px #ccc;
@@ -92,14 +97,14 @@
 			margin-left: -7ch;
 			padding-right: 2ch;
 			text-align: right;
-			opacity: .6;
+			color: #666;
 			-webkit-user-select: none;
 			-moz-user-select: none;
 			-ms-user-select: none;
 			user-select: none;
 		}
 		mark[data-line]::before {
-			opacity: .75;
+			color: #bbb;
 		}
 	}
 	</style>
