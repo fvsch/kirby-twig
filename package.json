@@ -1,8 +1,8 @@
 {
-  "name": "twig",
-  "version": "2.0.0",
-  "description": "Kirby Twig Plugin",
-  "author": "Florens Verschelde <florens@fvsch.com>",
-  "license": "MIT",
-  "type": "kirby-plugin"
+    "name": "twig",
+    "version": "2.0.0",
+    "description": "Kirby Twig Plugin",
+    "author": "Florens Verschelde <florens@fvsch.com>",
+    "license": "MIT",
+    "type": "kirby-plugin"
 }
