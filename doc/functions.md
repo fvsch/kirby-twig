@@ -1,8 +1,8 @@
-Exposing functions and classes to Twig templates
-================================================
+kirby-twig: Using your own functions in templates
+=================================================
 
 
-If you need to expose more PHP functions or classes to your Twig templates, you can list them with those two options:
+If you need to expose PHP functions or classes to your Twig templates, you can list them with those two options:
 
 -   `twig.env.functions` (for functions or static methods of classes)
 -   `twig.env.classes` (for classes, which must be instantiated with a `new()` Twig function)

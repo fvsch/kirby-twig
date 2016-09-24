@@ -47,66 +47,13 @@ For manual installation:
 You can now create `.twig` templates in your `site/templates` directory.
 
 
-Getting started with Twig
--------------------------
+Documentation
+-------------
 
-See [Twig templating tips for Kirby](doc/templating.md) for examples and some advice on using Twig with Kirby.
-
-
-Options
--------
-
-```php
-// REQUIRED: activate Twig plugin
-c::set('twig', true);
-
-// Should we use .php templates as fallback when .twig
-// templates don't exist? Set to false to only allow Twig templates
-c::set('twig.usephp', true);
-
-// Kirby URI of a page to render when there is a Twig error in production
-// For instance 'error/system'. Falls back to c::get('error').
-c::set('twig.error', '');
-
-// Use Twig’s PHP cache?
-// (Note that Kirby has its own HTML cache.)
-c::set('twig.cache', false);
-
-// Disable autoescaping or specify autoescaping type
-// http://twig.sensiolabs.org/doc/api.html#environment-options
-c::set('twig.autoescape', true);
-
-// Should Twig throw errors when using undefined variables or methods?
-// Defaults to the value of the 'debug' option
-c::set('twig.strict', c::get('debug', false));
-
-// List of additional functions that should be available in templates
-c::set('twig.env.functions', ['myCustomFunction']);
-
-// List of classes that can be instantiated from templates (with the `new()` function)
-c::set('twig.env.classes', ['SomeClass']);
-```
-
-Displaying errors
------------------
-
-With PHP templates, most errors are shown directly in the page. Things are a bit different with Twig: if an error is not suppressed, the template will *not* be rendered at all, and you end up with an error page.
-
-This plugin uses the value of the `debug` option (`c::get('debug')`) to know how strict it should be with errors and how much information to display.
-
-#### In production (no debug)
-
-1.  Undefined variables and methods are ignored, so they don’t raise an error.
-2.  For other errors, an error page will be shown, and it will have very little information about the source of the error (it doesn’t mention Twig, template names, etc.). We will show the error page (`c::get('error')`) if it exists, or a very short message otherwise.
-
-#### In debug mode
-
--   Undefined variables and methods raise an error (see the config section if you want to change that).
--   A nice error page is shown, with an excerpt of the faulty template code.
-
-<figure>
-    <img src="doc/errorpage.png" width="770" alt="">
-</figure>
+-   [Twig templating guide](doc/templating.md)
+-   [How errors are displayed (or not)](doc/errors.md)
+-   [Using your own functions in templates](doc/functions.md)
+-   [Complete options documentation](doc/options.md)
 
 
 Credits
