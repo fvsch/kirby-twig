@@ -131,6 +131,24 @@ class TwigRenderer
         // Set up loader
         $loader = new Twig_Loader_Filesystem($templateDir);
 
+        // Add namespaces
+        $namespaces = [
+            'templates' => $templateDir,
+            'snippets' => $kirby->roots->snippets(),
+            'plugins' => $kirby->roots->plugins(),
+            'assets' => $kirby->roots->assets()
+        ];
+        foreach (array_keys($kirby->options()) as $key) {
+            if (strpos($key, 'twig.namespace.') === 0) {
+                $name = str_replace('twig.namespace.', '', $key);
+                $path = $kirby->option($key);
+                if (is_string($path)) $namespaces[$name] = $path;
+            }
+        }
+        foreach ($namespaces as $name => $path) {
+            $loader->addPath($path, $name);
+        }
+
         // Start up Twig
         $twig = new Twig_Environment($loader, $options);
 
@@ -249,6 +267,9 @@ class TwigRenderer
     }
 
     /**
+     * Function used as `new('ClassName')` in Twig templates
+     * Returns a class instance for the provided class name, provided that
+     * this name has been whitelisted in the `twig.env.classes` config.
      * @param $name
      * @return mixed
      * @throws Twig_Error_Runtime
