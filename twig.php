@@ -6,7 +6,7 @@ if (C::get('twig', false)) {
         throw new Exception('Kirby Twig plugin requires Kirby 2.3 or higher. Current version: ' . kirby()->version());
     }
     if (!class_exists('Twig_Environment')) {
-        require_once __DIR__.'/lib/Twig/Twig/Autoloader.php';
+        require_once __DIR__.'/lib/Twig/lib/Twig/Autoloader.php';
         Twig_Autoloader::register();
     }
 
