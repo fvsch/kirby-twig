@@ -124,7 +124,7 @@ class TwigRenderer
         $options  = [
             'debug' => $debug,
             'strict_variables' => C::get('twig.strict', $debug),
-            'cache' => C::get('twig.cache', false) ? $cacheDir : false,
+            'cache' => C::get('twig.cache', true) ? $cacheDir : false,
             'autoescape' => C::get('twig.autoescape', true)
         ];
 
