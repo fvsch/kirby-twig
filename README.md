@@ -51,9 +51,10 @@ Documentation
 -------------
 
 -   [Twig templating guide](doc/templating.md)
+-   [Complete options documentation](doc/options.md)
 -   [How errors are displayed (or not)](doc/errors.md)
 -   [Using your own functions in templates](doc/functions.md)
--   [Complete options documentation](doc/options.md)
+-   [Twig support in Kirby plugins](doc/plugins.md)
 
 
 Credits

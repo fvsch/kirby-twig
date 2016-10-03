@@ -1,5 +1,7 @@
-kirby-twig: Options documentation
-=================================
+[kirby-twig] Options documentation
+==================================
+
+## Basic options
 
 ```php
 // REQUIRED: activate Twig plugin
@@ -12,12 +14,20 @@ c::set('twig.usephp', true);
 // Kirby URI of a page to render when there is a Twig error in production
 // For instance 'error/system'. Falls back to c::get('error').
 c::set('twig.error', '');
+```
 
+## Customizing the Twig environment
+
+```
 // List of additional functions that should be available in templates
 c::set('twig.env.functions', ['myCustomFunction']);
 
 // List of classes that can be instantiated from templates (with the `new()` function)
 c::set('twig.env.classes', ['SomeClass']);
+
+// Define a directory as a Twig namespace, that can be used as:
+//   {% include '@mynamespace/something.twig' %}
+c::set('twig.namespace.mynamespace', kirby()->roots()->index().'/mydirectory');
 ```
 
 ## Advanced
