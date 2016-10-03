@@ -73,6 +73,56 @@ By default, Twig will escape HTML tags and entities (to help prevent [cross-site
 ```
 
 
+Including stuff
+---------------
+
+A very common pattern when using Twig is to create a “base” template that other templates will extend. For instance:
+
+```twig
+{# site/templates/base.twig #}
+<!doctype html>
+<html lang="{{ site.language() }}">
+  <head>
+    <title>{{ htmlTitle|default('No title') }}</title>
+  </head>
+  <body>
+  {% include '@snippets/navigation.twig' %}
+  {% block content %}
+  {% endblock %}
+  </body>
+</html>
+```
+
+Then, in a specific template, you can extend this base template:
+
+```twig
+{# site/templates/default.twig #}
+{% extends '@templates/base.twig' %}
+{% set htmlTitle = page.title ~ ' - ' ~ site.title %}
+
+{% block content %}
+  {{ page.text.kirbytext | raw }}
+{% endblock %}
+```
+
+See the `@snippets` and `@templates` parts in our extends and includes? These are Twig namespaces, i.e. aliases for specific directories. Out of the box we have 4 namespaces:
+
+-   `@templates`
+-   `@snippets`
+-   `@plugins`
+-   `@assets`
+
+They all point to the corresponding directory (generally `site/snippets`, `site/plugins` etc.), and follow Kirby’s configuration if you have changed those paths.
+
+Finally, note that you can use the `source()` function to output the contents of a file that is not a template, for instance if you want to inline a short script in a page:
+
+```twig
+<script>
+{{ source('@assets/js/some-script.min.js') }}
+</script>
+```
+
+
 Kirby-specific variables and functions
 --------------------------------------
 
@@ -120,8 +170,8 @@ The few exceptions are:
 
 ### Getting config values
 
--   Use the `c(configName, defaultValue)` function in Twig templates to get config values (shortcut for `c::get`).
--   Use the `l(configName, defaultValue)` funciton in Twig templates to get language-specific config values or translation strings (shortcut for `l::get`).
+-   Use the `c__get(configName, defaultValue)` function in Twig templates to get config values (shortcut for `c::get`).
+-   Use the `l__get(configName, defaultValue)` funciton in Twig templates to get language-specific config values or translation strings (shortcut for `l::get`).
 
 ### Kirby Toolkit
 
