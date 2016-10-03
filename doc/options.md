@@ -1,5 +1,5 @@
-[kirby-twig] Options documentation
-==================================
+Options documentation
+=====================
 
 ## Basic options
 

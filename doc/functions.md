@@ -1,5 +1,5 @@
-[kirby-twig] Using your own functions in templates
-==================================================
+Using your own functions in templates
+=====================================
 
 
 If you need to expose PHP functions or classes to your Twig templates, you can list them with those two options:

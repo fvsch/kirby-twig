@@ -1,5 +1,5 @@
-[kirby-twig] Twig support in Kirby plugins
-==========================================
+Twig support in Kirby plugins
+=============================
 
 If you’re developing a Kirby plugin to share it with the Kirby community, it’s probably not a great idea to make it rely on kirby-twig. You should probably provide PHP templates or snippets.
 

@@ -1,5 +1,5 @@
-kirby-twig: Twig templating guide
-=================================
+Twig templating guide
+=====================
 
 This is a short guide of how to use Twig templates with Kirby CMS. It supposes that you have installed and enabled the Twig Plugin already.
 

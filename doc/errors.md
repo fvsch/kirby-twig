@@ -1,5 +1,5 @@
-[kirby-twig] How errors are displayed (or not)
-==============================================
+How errors are displayed (or not)
+=================================
 
 With PHP templates, most errors are shown directly in the page. Things are a bit different with Twig: if an error is not suppressed, the template will *not* be rendered at all, and you end up with an error page.
 
@@ -13,7 +13,7 @@ If `c::get('debug')` is true:
 - A nice error page is shown, with an excerpt of the faulty template code.
 
 <figure>
-    <img src="errorpage.png" width="770" alt="">
+    <img src="img/errorpage.png" width="770" alt="">
 </figure>
 
 ## In production
