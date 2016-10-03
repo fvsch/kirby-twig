@@ -18,7 +18,7 @@ c::set('twig.error', '');
 
 ## Customizing the Twig environment
 
-```
+```php
 // List of additional functions that should be available in templates
 c::set('twig.env.functions', ['myCustomFunction']);
 
@@ -32,7 +32,7 @@ c::set('twig.namespace.mynamespace', kirby()->roots()->index().'/mydirectory');
 
 ## Advanced
 
-```
+```php
 // Use Twig’s PHP cache?
 // Enabled by default. Note that Kirby has its own HTML cache for pages,
 // so this might be extra work, but for pages which are often not cached
