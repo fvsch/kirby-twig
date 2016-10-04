@@ -181,7 +181,7 @@ class TwigRenderer
      * @param bool   $return
      * @return string|null
      */
-    public function template($filePath, $tplData=[], $return = true)
+    public function render($filePath, $tplData=[], $return = true)
     {
         // Remove the start of the templates path, since Twig asks for a path
         // starting from one of the setup directories.
