@@ -3,5 +3,6 @@
     "description": "Kirby Twig Plugin",
     "author": "Florens Verschelde <florens@fvsch.com>",
     "license": "MIT",
-    "type": "kirby-plugin"
+    "type": "kirby-plugin",
+    "version": "2.1.1"
 }
