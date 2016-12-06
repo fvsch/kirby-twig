@@ -78,6 +78,8 @@ class TwigRenderer
         'pages',
         'param',
         'params',
+        // From the Patterns plugin - similar to snippet
+        '*pattern',
         // Skipping: r - Same reason as for ecco/e
         'site',
         'size',
