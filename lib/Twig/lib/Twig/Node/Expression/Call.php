@@ -146,7 +146,7 @@ abstract class Twig_Node_Expression_Call extends Twig_Node_Expression
                     throw new Twig_Error_Syntax(sprintf('Argument "%s" is defined twice for %s "%s".', $name, $callType, $callName));
                 }
 
-                if (!empty($missingArguments)) {
+                if (count($missingArguments)) {
                     throw new Twig_Error_Syntax(sprintf(
                         'Argument "%s" could not be assigned for %s "%s(%s)" because it is mapped to an internal PHP function which cannot determine default value for optional argument%s "%s".',
                         $name, $callType, $callName, implode(', ', $names), count($missingArguments) > 1 ? 's' : '', implode('", "', $missingArguments))
@@ -205,7 +205,7 @@ abstract class Twig_Node_Expression_Call extends Twig_Node_Expression
             throw new Twig_Error_Syntax(sprintf(
                 'Unknown argument%s "%s" for %s "%s(%s)".',
                 count($parameters) > 1 ? 's' : '', implode('", "', array_keys($parameters)), $callType, $callName, implode(', ', $names)
-            ), $unknownParameter ? $unknownParameter->getLine() : -1);
+            ), $unknownParameter ? $unknownParameter->getTemplateLine() : -1);
         }
 
         return $arguments;
@@ -218,7 +218,10 @@ abstract class Twig_Node_Expression_Call extends Twig_Node_Expression
 
     private function getCallableParameters($callable, $isVariadic)
     {
-        list($r, $_) = $this->reflectCallable($callable);
+        list($r) = $this->reflectCallable($callable);
+        if (null === $r) {
+            return array();
+        }
 
         $parameters = $r->getParameters();
         if ($this->hasNode('node')) {
@@ -259,14 +262,24 @@ abstract class Twig_Node_Expression_Call extends Twig_Node_Expression
         }
 
         if (is_array($callable)) {
+            if (!method_exists($callable[0], $callable[1])) {
+                // __call()
+                return array(null, array());
+            }
             $r = new ReflectionMethod($callable[0], $callable[1]);
         } elseif (is_object($callable) && !$callable instanceof Closure) {
             $r = new ReflectionObject($callable);
             $r = $r->getMethod('__invoke');
             $callable = array($callable, '__invoke');
         } elseif (is_string($callable) && false !== $pos = strpos($callable, '::')) {
+            $class = substr($callable, 0, $pos);
+            $method = substr($callable, $pos + 2);
+            if (!method_exists($class, $method)) {
+                // __staticCall()
+                return array(null, array());
+            }
             $r = new ReflectionMethod($callable);
-            $callable = array(substr($callable, 0, $pos), substr($callable, $pos + 2));
+            $callable = array($class, $method);
         } else {
             $r = new ReflectionFunction($callable);
         }
