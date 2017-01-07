@@ -28,7 +28,7 @@ class TwigTemplate extends Template
      */
     public function file($name)
     {
-        $usephp = C::get('twig.usephp', true);
+        $usephp = c::get('twig.usephp', true);
         $base = str_replace('\\', '/', $this->kirby->roots()->templates().'/'.$name);
         $twig = $base . '.twig';
         $php  = $base . '.php';
@@ -66,19 +66,19 @@ class TwigTemplate extends Template
         }
 
         // merge and register the template data globally
-        $tplData = Tpl::$data;
+        $startData = Tpl::$data;
         Tpl::$data = array_merge(Tpl::$data, $data);
 
         // load the template
         if (pathinfo($file, PATHINFO_EXTENSION) === 'twig') {
             $twig = new TwigRenderer();
-            $result = $twig->render($file, Tpl::$data, $return);
+            $result = $twig->render($file, Tpl::$data, $return, true);
         } else {
-            $result = Tpl::load($file, $data, $return);
+            $result = Tpl::load($file, [], $return);
         }
 
         // reset the template data
-        Tpl::$data = $tplData;
+        Tpl::$data = $startData;
 
         return $result;
     }

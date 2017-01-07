@@ -112,7 +112,7 @@
 <body>
     <div>
         <h1><?php echo $title ?></h1>
-        <?php if (!empty($file)) { echo "<h2>$file</h2>\n"; } ?>
+        <?php if (!empty($subtitle)) { echo "<h2>$subtitle</h2>\n"; } ?>
         <?php if (!empty($message)) { echo "<p>$message</p>\n"; } ?>
     </div>
     <?php if (!empty($code)) { echo "<pre><code>$code</code></pre>"; } ?>

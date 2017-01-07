@@ -12,6 +12,7 @@ if (C::get('twig', false)) {
 
     require_once __DIR__.'/src/TwigTemplate.php';
     require_once __DIR__.'/src/TwigRenderer.php';
+    require_once __DIR__.'/src/helpers.php';
 
     kirby()->set('component', 'template', 'Kirby\Plugin\Twig\TwigTemplate');
 
