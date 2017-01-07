@@ -44,21 +44,30 @@ For manual installation:
 2. Rename the copied folder to `twig` (it should be named `site/plugins/twig`).
 3. To activate the plugin, put `c::set('twig', true);` in your `site/config/config.php`.
 
-You can now create `.twig` templates in your `site/templates` directory.
+
+Usage
+-----
+
+**TODO: shortly describe usage with page template, including a snippet, and twig helper.**
 
 
-Documentation
--------------
+More documentation
+------------------
 
--   [Twig templating guide](doc/templating.md)
--   [Complete options documentation](doc/options.md)
--   [How errors are displayed (or not)](doc/errors.md)
+Recommended reads:
+
+-   [Twig templating guide for Kirby](doc/templating.md)
 -   [Using your own functions in templates](doc/functions.md)
+-   [Complete options documentation](doc/options.md)
+
+Other topics:
+
+-   [How errors are displayed (or not)](doc/errors.md)
 -   [Twig support in Kirby plugins](doc/plugins.md)
 
 
 Credits
 -------
 
--   This script: [MIT License](LICENSE)
--   Twig library by Fabien Potencier and contributors / New BSD License ([lib/Twig/LICENSE](lib/Twig/LICENSE))
+-   Twig library: Fabien Potencier and contributors / [New BSD License]([lib/Twig/LICENSE](lib/Twig/LICENSE))
+-   Twig plugin for Kirby: Florens Verschelde / [MIT License](LICENSE)

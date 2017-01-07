@@ -34,10 +34,13 @@ c::set('twig.namespace.mynamespace', kirby()->roots()->index().'/mydirectory');
 
 ```php
 // Use Twig’s PHP cache?
-// Enabled by default. Note that Kirby has its own HTML cache for pages,
-// so this might be extra work, but for pages which are often not cached
-// (e.g. search pages with a specific query string) this could be useful.
-c::set('twig.cache', true);
+// Disabled by default (starting from 2.2).
+// Enabling Twig's cache can give a speed boost to pages with changing
+// content (e.g. a search result page), because Twig will use a compiled
+// version of the template when building the response.
+// But if you have static text content in your Twig templates, you won’t
+// see content changes until you manually remove the `site/cache/twig` folder.
+c::set('twig.cache', false);
 
 // Disable autoescaping or specify autoescaping type
 // http://twig.sensiolabs.org/doc/api.html#environment-options
