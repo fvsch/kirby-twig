@@ -1,6 +1,6 @@
 <?php
 
-namespace Kirby\Plugin\Twig;
+namespace Kirby\Twig;
 
 use C;
 use Exception;
@@ -9,17 +9,17 @@ use Page;
 use Tpl;
 
 /**
- * Twig Template Builder Component for Kirby
+ * Twig Template Component for Kirby
  *
  * This component class extends Kirby’s built-in Kirby\Component\Template
- * class and replaces its file() and render() methods. When rendering a
- * Twig template, instead of calling Tpl::load, we call our custom class
- * Kirby\Plugin\Twig\TwigRenderer.
+ * class and implements custom file() and render() methods. When rendering
+ * a Twig template, instead of calling Tpl::load, we call:
+ * Kirby\Twig\TwigEnv::renderPath
  *
- * @package   Kirby Twig Plugin
- * @author    Florens Verschelde <florens@fvsch.com>
+ * @package  Kirby Twig Plugin
+ * @author   Florens Verschelde <florens@fvsch.com>
  */
-class TwigTemplate extends Template
+class TwigComponent extends Template
 {
     /**
      * Returns a template file path by name
@@ -71,8 +71,8 @@ class TwigTemplate extends Template
 
         // load the template
         if (pathinfo($file, PATHINFO_EXTENSION) === 'twig') {
-            $twig = new TwigRenderer();
-            $result = $twig->render($file, Tpl::$data, $return, true);
+            $twig = TwigEnv::instance();
+            $result = $twig->renderPath($file, Tpl::$data, $return, true);
         } else {
             $result = Tpl::load($file, [], $return);
         }

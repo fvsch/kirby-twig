@@ -26,7 +26,7 @@
     }
     h2 {
         margin: -.75rem 0 1rem;
-        font-size: 100%;
+        font-size: 90%;
         line-height: 1.3;
         font-weight: normal;
         font-family: monospace, monospace;
@@ -34,6 +34,12 @@
     }
     p {
         margin: .5rem 0;
+    }
+    p > span {
+        padding: .15em .3em;
+        box-decoration-break: clone;
+        color: #fff;
+        background-color: darkred;
     }
     pre, code {
         font-family: monospace, monospace;
@@ -62,7 +68,7 @@
             padding: 1em;
         }
         body {
-            width: 54em;
+            width: 60em;
             max-width: 100%;
             margin: 1em auto;
             border: solid 1px #ccc;
@@ -113,7 +119,7 @@
     <div>
         <h1><?php echo $title ?></h1>
         <?php if (!empty($subtitle)) { echo "<h2>$subtitle</h2>\n"; } ?>
-        <?php if (!empty($message)) { echo "<p>$message</p>\n"; } ?>
+        <?php if (!empty($message)) { echo "<p><span>$message</span></p>\n"; } ?>
     </div>
     <?php if (!empty($code)) { echo "<pre><code>$code</code></pre>"; } ?>
 </body>

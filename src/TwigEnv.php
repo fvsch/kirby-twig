@@ -1,14 +1,12 @@
 <?php
 
-namespace Kirby\Plugin\Twig;
+namespace Kirby\Twig;
 
 use C;
 use Escape;
-use F;
 use Kirby;
 use ReflectionClass;
 use Response;
-use Str;
 use Tpl;
 use Twig_Environment;
 use Twig_Loader_Filesystem;
@@ -17,22 +15,30 @@ use Twig_Extension_Debug;
 use Twig_Error;
 use Twig_Error_Runtime;
 
-/**
- * Twig Template Renderer for Kirby
- *
- * @package   Kirby Twig Plugin
- * @author    Florens Verschelde <florens@fvsch.com>
- */
-class TwigRenderer
-{
-    /** @var TwigRenderer */
-    private static $instance = null;
 
+/**
+ * Wrapper for the Twig_Environment class, setting up an instance
+ * with Kirby-specific configuration.
+ *
+ * @package  Kirby Twig Plugin
+ * @author   Florens Verschelde <florens@fvsch.com>
+ */
+class TwigEnv
+{
     /** @var Twig_Environment */
-    private $twigEnv = null;
+    private $twig = null;
 
     /** @var boolean */
     private $debug = false;
+
+    /** @var TwigEnv */
+    private static $instance = null;
+
+    /**
+     * Prefix used by Twig for template string names
+     * @var string
+     */
+    private $templateStringPrefix = '__string_template__';
 
     /**
      * Kirby helper functions to expose as simple Twig functions
@@ -115,15 +121,10 @@ class TwigRenderer
     private $templateDir = null;
 
     /**
-     * Return a new instance or the cached instance if it exists
-     * @return TwigRenderer
+     * Twig namespaces
+     * @var array
      */
-    static public function instance() {
-        if (is_null(static::$instance)) {
-            static::$instance = new static;
-        }
-        return static::$instance;
-    }
+    private $namespaces = null;
 
     /**
      * Prepare the Twig environment
@@ -187,10 +188,23 @@ class TwigRenderer
 
         // And we're done
         $this->templateDir = $templateDir;
-        $this->twigEnv = $twig;
+        $this->namespaces = $namespaces;
+        $this->twig = $twig;
 
         // Make sure the instance is stored / overwritten
         static::$instance = $this;
+    }
+
+    /**
+     * Return a new instance or the cached instance if it exists
+     * @return TwigEnv
+     */
+    public static function instance()
+    {
+        if (is_null(static::$instance)) {
+            static::$instance = new static;
+        }
+        return static::$instance;
     }
 
     /**
@@ -202,7 +216,7 @@ class TwigRenderer
      * @param bool   $isPage
      * @return string|null
      */
-    public function render($filePath='', $tplData=[], $return=true, $isPage=false)
+    public function renderPath($filePath='', $tplData=[], $return=true, $isPage=false)
     {
         // Remove the start of the templates path, since Twig asks
         // for a path starting from one of the registered directories.
@@ -210,7 +224,7 @@ class TwigRenderer
             preg_replace('#[\\\/]+#', '/', $filePath)), '/');
 
         try {
-            $content = $this->twigEnv->render($path, $tplData);
+            $content = $this->twig->render($path, $tplData);
         }
         catch (Twig_Error $err) {
             $content = $this->error($err, $isPage);
@@ -229,12 +243,13 @@ class TwigRenderer
      * @param $tplData
      * @return string
      */
-    public function renderString($tplString, $tplData) {
+    public function renderString($tplString, $tplData)
+    {
         try {
-            return $this->twigEnv->createTemplate($tplString)->render($tplData);
+            return $this->twig->createTemplate($tplString)->render($tplData);
         }
         catch (Twig_Error $err) {
-            return $this->error($err);
+            return $this->error($err, false, $tplString);
         }
     }
 
@@ -243,54 +258,66 @@ class TwigRenderer
      * rendering a full page or a fragment (e.g. when using the `twig` helper),
      * and if we're in debug mode or not.
      *
-     *        | Page mode           | Fragment mode
-     * -------|---------------------| --------------
-     * Debug: | Custom error page   | Error message
-     * -------|---------------------| --------------
-     * Prod:  | Standard error page | Empty string
+     *        | Page mode            | Fragment mode
+     * -------|----------------------| --------------
+     * Debug: | Custom error page    | Error message
+     * -------|----------------------| --------------
+     * Prod:  | Standard error page, | Empty string
+     *        | or let error through |
      *
-     * @param Twig_Error $err
-     * @param boolean $isPage
+     * @param  Twig_Error $err
+     * @param  boolean    $isPage
+     * @param  string     $templateString
      * @return string|Response
      * @throws Twig_Error
      */
-    private function error(Twig_Error $err, $isPage=false)
+    private function error(Twig_Error $err, $isPage=false, $templateString=null)
     {
-        // When returning a HTML fragment
-        if (!$isPage) {
-            if (!$this->debug) return '';
-            return implode(' ', [
-                '<b>Error:</b> ' . get_class($err) . ',',
-                'line ' . $err->getTemplateLine(),
-                'of ' . $err->getTemplateName(),
-                '<br>' . $err->getRawMessage()
-            ]);
-        }
-
-        // When returning a page
-        // Debug mode off: show the site's error page
         if (!$this->debug) {
-            try {
-                $kirby = Kirby::instance();
-                $page = $kirby->site()->page($kirby->get('option', 'error'));
-                if ($page) return $kirby->render($page);
-            }
-            catch (Twig_Error $err2) {
-            }
-            // Still there? Let Whoops catch the initial error
-            if (c::get('whoops', false)) {
+            if (!$isPage) return '';
+            // Debug mode off: show the site's error page
+            if (!$this->debug) {
+                try {
+                    $kirby = Kirby::instance();
+                    $page = $kirby->site()->page($kirby->get('option', 'error'));
+                    if ($page) return $kirby->render($page);
+                }
+                catch (Twig_Error $err2) {
+                }
+                // Still there? Rethrow the initial error. Can result in the
+                // 'fatal.php' white error page (in Kirby 2.4+ with Whoops active),
+                // or an empty response (white page). That’s consistent with errors
+                // for e.g. missing base templates.
                 throw $err;
             }
-            // or mimic Kirby 2.4's fatal error page, with less info
-            return new Response(
-                '<title>Error</title>'."\n".
-                '<p style="text-align:center;margin:10%;">'.
-                'This page is currently offline due to an unexpected error.</p>',
-                'html', 500
-            );
         }
 
-        // Debug mode on: make a custom error page
+        // Gather information
+        $name = $err->getTemplateName();
+        $line = $err->getTemplateLine();
+        $msg  = $err->getRawMessage();
+        $path = null;
+        $code = $templateString ? $templateString : '';
+        if (!$templateString) {
+            try {
+                $source = $this->twig->getLoader()->getSourceContext($name);
+                $path = $source->getPath();
+                $code = $source->getCode();
+            }
+            catch (Twig_Error $err2) {}
+        }
+
+        // When returning a HTML fragment
+        if (!$isPage && $this->debug) {
+            $info = get_class($err) . ', line ' . $line . ' of ' .
+                ($templateString ? 'template string:' : $name);
+            $src  = $this->getSourceExcerpt($code, $line, 1, false);
+            return '<b>Error:</b> ' . $info . "\n" .
+                '<pre style="margin:0">'.$src.'</pre>' . "\n" .
+                '➡ ' . $msg . "<br>\n";
+        }
+
+        // When rendering a full page with Twig: make a custom error page
         // Note for Kirby 2.4+: we don't use the Whoops error page because
         // it's not possible to surface Twig source code in it's stack trace
         // and code viewer. Whoops will only show the PHP method calls going
@@ -298,47 +325,41 @@ class TwigRenderer
         // https://github.com/filp/whoops/issues/167
         // https://github.com/twigphp/Twig/issues/1347
         // So we roll our own.
-        $line = $err->getTemplateLine();
-        $message = $err->getRawMessage();
-        // TODO: we need a better way to get at the actual file content
-        // e.g. for the main templates we might get 'article.twig' and
-        // try to find site/templates/article.twig, but when using namespaces
-        // like '@snippets/header.twig' getting to the right file will require
-        // some work. Also if we dump $err we do get the real file path and
-        // the template's content! Just not sure which part of the Twig API
-        // we should use to get at this info.
-        $file = $err->getTemplateName();
-        $subtitle = 'Line ' . $line . ' of ' . $file;
-        if (str::startsWith($file, '@') == false) {
-            $subtitle = 'Line ' . $line . ' of ' . '@templates/'.$file;
-            $file = $this->templateDir . '/' . $file;
-        }
+        $html = Tpl::load(dirname(__DIR__) . '/templates/errorpage.php', [
+            'title' => get_class($err),
+            'subtitle' => 'Line ' . $line . ' of ' . ($path ? $path : $name),
+            'message' => $msg,
+            'code' => $this->getSourceExcerpt($code, $line, 6, true)
+        ]);
+        return new Response($html, 'html', 500);
+    }
 
-        // Get a few lines of code from the buggy template
+    /**
+     * Extract a few lines of source code from a source string
+     * @param string $source
+     * @param int    $line
+     * @param int    $plus
+     * @param bool   $format
+     * @return string
+     */
+    private function getSourceExcerpt($source='', $line=1, $plus=1, $format=false)
+    {
         $excerpt = [];
-        if (f::isReadable($file)) {
-            $plus  = 6;
-            $twig  = Escape::html(f::read($file));
-            $lines = preg_split("/(\r\n|\n|\r)/", $twig);
-            $start = max(1, $line - $plus);
-            $limit = min(count($lines), $line + $plus);
-            for ($i = $start - 1; $i < $limit; $i++) {
+        $twig  = Escape::html($source);
+        $lines = preg_split("/(\r\n|\n|\r)/", $twig);
+        $start = max(1, $line - $plus);
+        $limit = min(count($lines), $line + $plus);
+        for ($i = $start - 1; $i < $limit; $i++) {
+            if ($format) {
                 $attr = 'data-line="'.($i+1).'"';
                 if ($i === $line - 1) $excerpt[] = "<mark $attr>$lines[$i]</mark>";
                 else $excerpt[] = "<span $attr>$lines[$i]</span>";
             }
+            else {
+                $excerpt[] = $lines[$i];
+            }
         }
-
-        // Error page template
-        $html = Tpl::load(dirname(__DIR__) . '/templates/errorpage.php', [
-            'title' => get_class($err),
-            'message' => $message,
-            'subtitle' => $subtitle,
-            'code' => implode("\n", $excerpt)
-        ]);
-
-        echo new Response($html, 'html', 500);
-        exit;
+        return implode("\n", $excerpt);
     }
 
     /**
