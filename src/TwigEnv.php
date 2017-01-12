@@ -11,6 +11,7 @@ use Tpl;
 use Twig_Environment;
 use Twig_Loader_Filesystem;
 use Twig_SimpleFunction;
+use Twig_SimpleFilter;
 use Twig_Extension_Debug;
 use Twig_Error;
 use Twig_Error_Runtime;
@@ -35,12 +36,6 @@ class TwigEnv
     private static $instance = null;
 
     /**
-     * Prefix used by Twig for template string names
-     * @var string
-     */
-    private $templateStringPrefix = '__string_template__';
-
-    /**
      * Kirby helper functions to expose as simple Twig functions
      *
      * We're exposing all helper functions documented in
@@ -52,7 +47,7 @@ class TwigEnv
      *
      * @var array
      */
-    private $functions = [
+    private $defaultFunctions = [
         '*attr',
         '*brick',
         // Get config value
@@ -121,12 +116,6 @@ class TwigEnv
     private $templateDir = null;
 
     /**
-     * Twig namespaces
-     * @var array
-     */
-    private $namespaces = null;
-
-    /**
      * Prepare the Twig environment
      * @throws Twig_Error_Runtime
      */
@@ -135,7 +124,7 @@ class TwigEnv
         $this->debug = c::get('debug', false);
 
         $kirby = Kirby::instance();
-        $templateDir = $kirby->roots()->templates();
+        $this->templateDir = $kirby->roots()->templates();
         $cacheDir = $kirby->roots()->cache() . '/twig';
 
         $options  = [
@@ -146,11 +135,11 @@ class TwigEnv
         ];
 
         // Set up loader
-        $loader = new Twig_Loader_Filesystem($templateDir);
+        $loader = new Twig_Loader_Filesystem($this->templateDir);
 
         // Add namespaces
         $namespaces = [
-            'templates' => $templateDir,
+            'templates' => $this->templateDir,
             'snippets' => $kirby->roots->snippets(),
             'plugins' => $kirby->roots->plugins(),
             'assets' => $kirby->roots->assets()
@@ -159,7 +148,9 @@ class TwigEnv
             if (strpos($key, 'twig.namespace.') === 0) {
                 $name = str_replace('twig.namespace.', '', $key);
                 $path = $kirby->option($key);
-                if (is_string($path)) $namespaces[$name] = $path;
+                if (is_string($path)) {
+                    $loader->addPath($path, $name);
+                }
             }
         }
         foreach ($namespaces as $name => $path) {
@@ -167,32 +158,47 @@ class TwigEnv
         }
 
         // Start up Twig
-        $twig = new Twig_Environment($loader, $options);
+        $this->twig = new Twig_Environment($loader, $options);
 
         // Enable Twig’s dump function
-        $twig->addExtension(new Twig_Extension_Debug());
+        $this->twig->addExtension(new Twig_Extension_Debug());
 
-        // Plug in our selected list of helper functions
-        $functions = array_merge($this->functions, c::get('twig.env.functions', []));
-        foreach (array_filter($functions, 'is_string') as $name) {
-            $callName = trim($name, '* ');
-            if (!is_callable($callName)) continue;
-            $twigName = str_replace('::', '__', $callName);
-            $params = strpos($name, '*') !== false ? ['is_safe' => ['html']] : [];
-            $twig->addFunction(new Twig_SimpleFunction($twigName, $callName, $params));
+        // Plug in functions and filters
+        $functions = c::get('twig.env.functions', []);
+        $filters = c::get('twig.env.filters', []);
+        foreach (array_merge($this->defaultFunctions, $functions) as $fn) {
+            $this->addCallable('function', $fn);
+        }
+        foreach ($filters as $fn) {
+            $this->addCallable('filter', $fn);
         }
 
-        // Add the 'new' function that allows instantiating a whitelist of classes
+        // Add a 'new' function that allows instantiating a whitelist of classes
         $this->classes = array_filter(c::get('twig.env.classes', []), 'is_string');
-        $twig->addFunction(new Twig_SimpleFunction('new', [$this, 'makeClassInstance']));
-
-        // And we're done
-        $this->templateDir = $templateDir;
-        $this->namespaces = $namespaces;
-        $this->twig = $twig;
+        $this->twig->addFunction(new Twig_SimpleFunction('new', [$this, 'makeClassInstance']));
 
         // Make sure the instance is stored / overwritten
         static::$instance = $this;
+    }
+
+    /**
+     * Expose a function to the Twig environment as a function or filter
+     * @param string $type
+     * @param string $name
+     */
+    private function addCallable($type='function', $name)
+    {
+        if (!is_string($name)) return;
+        $callName = trim($name, '* ');
+        if (!is_callable($callName)) return;
+        $twigName = str_replace('::', '__', $callName);
+        $params = strpos($name, '*') !== false ? ['is_safe' => ['html']] : [];
+        if ($type === 'function') {
+            $this->twig->addFunction(new Twig_SimpleFunction($twigName, $callName, $params));
+        }
+        if ($type === 'filter') {
+            $this->twig->addFilter(new Twig_SimpleFilter($twigName, $callName, $params));
+        }
     }
 
     /**
@@ -239,11 +245,11 @@ class TwigEnv
 
     /**
      * Render a Twig template from a string
-     * @param $tplString
-     * @param $tplData
+     * @param  string $tplString
+     * @param  array  $tplData
      * @return string
      */
-    public function renderString($tplString, $tplData)
+    public function renderString($tplString='', $tplData=[])
     {
         try {
             return $this->twig->createTemplate($tplString)->render($tplData);
