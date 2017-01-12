@@ -10,6 +10,7 @@ use Tpl;
 use Twig_Environment;
 use Twig_Loader_Filesystem;
 use Twig_SimpleFunction;
+use Twig_SimpleFilter;
 use Twig_Extension_Debug;
 use Twig_Error;
 use Twig_Error_Runtime;
@@ -159,13 +160,11 @@ class TwigRenderer
 
         // Plug in our selected list of helper functions
         $functions = array_merge($this->functions, C::get('twig.env.functions', []));
-        foreach (array_filter($functions, 'is_string') as $name) {
-            $callName = trim($name, '* ');
-            if (!is_callable($callName)) continue;
-            $twigName = str_replace('::', '__', $callName);
-            $params = strpos($name, '*') !== false ? ['is_safe' => ['html']] : [];
-            $twig->addFunction(new Twig_SimpleFunction($twigName, $callName, $params));
-        }
+        $this->addCallables($twig, $functions, 'functions');
+
+        // Add custom filters
+        $filters = C::get('twig.env.filters', []);
+        $this->addCallables($twig, $filters, 'filters');
 
         // Add the 'new' function that allows instantiating a whitelist of classes
         $this->classes = array_filter(C::get('twig.env.classes', []), 'is_string');
@@ -174,6 +173,30 @@ class TwigRenderer
         // And we're done
         $this->templateDir = $templateDir;
         $this->env = $twig;
+    }
+
+    /**
+     * Plug in a list of functions or filters
+     * @param Twig_Environment $twig
+     * @param array            $callablesArray
+     * @param string           $type
+     */
+    private function addCallables(Twig_Environment $twig, $callablesArray, $type = 'functions')
+    {
+        foreach (array_filter($callablesArray, 'is_string') as $name) {
+            $callName = trim($name, '* ');
+            if (!is_callable($callName)) continue;
+            $twigName = str_replace('::', '__', $callName);
+            $params = strpos($name, '*') !== false ? ['is_safe' => ['html']] : [];
+
+            switch ($type) {
+                case 'functions':
+                    $twig->addFunction(new Twig_SimpleFunction($twigName, $callName, $params));
+                    break;
+                case 'filters':
+                    $twig->addFilter(new Twig_SimpleFilter($twigName, $callName, $params));
+            }
+        }
     }
 
     /**
