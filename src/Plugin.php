@@ -31,7 +31,7 @@ class Plugin
         }
         $kirby = kirby();
         if (!class_exists('Kirby\Component\Template')) {
-            throw new Exception('Kirby Twig plugin requires Kirby 2.3 or higher. Current version: ' . $kirby->version());
+            throw new Exception('The Kirby Twig plugin requires Kirby 2.3 or higher. Current version: ' . $kirby->version());
         }
         if (!class_exists('Twig_Environment')) {
             require_once __DIR__.'/../lib/Twig/lib/Twig/Autoloader.php';

@@ -28,9 +28,6 @@ c::set('twig.env.functions', ['myCustomFunction']);
 
 // List of additional functions that should be available as Twig filters
 c::set('twig.env.filters', ['myCustomFilter']);
-
-// List of classes that can be instantiated from templates (with the `new()` function)
-c::set('twig.env.classes', ['SomeClass']);
 ```
 
 

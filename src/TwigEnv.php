@@ -5,7 +5,6 @@ namespace Kirby\Twig;
 use C;
 use Escape;
 use Kirby;
-use ReflectionClass;
 use Response;
 use Tpl;
 use Twig_Environment;
@@ -103,13 +102,6 @@ class TwigEnv
     ];
 
     /**
-     * Names of classes that can be instantiated from Twig templates using
-     * our custom `new('MyClass')` function.
-     * @var array
-     */
-    private $classes = null;
-
-    /**
      * Cache of $kirby->roots()->templates()
      * @var string
      */
@@ -172,10 +164,6 @@ class TwigEnv
         foreach ($filters as $fn) {
             $this->addCallable('filter', $fn);
         }
-
-        // Add a 'new' function that allows instantiating a whitelist of classes
-        $this->classes = array_filter(c::get('twig.env.classes', []), 'is_string');
-        $this->twig->addFunction(new Twig_SimpleFunction('new', [$this, 'makeClassInstance']));
 
         // Make sure the instance is stored / overwritten
         static::$instance = $this;
@@ -282,20 +270,19 @@ class TwigEnv
         if (!$this->debug) {
             if (!$isPage) return '';
             // Debug mode off: show the site's error page
-            if (!$this->debug) {
-                try {
-                    $kirby = Kirby::instance();
-                    $page = $kirby->site()->page($kirby->get('option', 'error'));
-                    if ($page) return $kirby->render($page);
-                }
-                catch (Twig_Error $err2) {
-                }
-                // Still there? Rethrow the initial error. Can result in the
-                // 'fatal.php' white error page (in Kirby 2.4+ with Whoops active),
-                // or an empty response (white page). That’s consistent with errors
-                // for e.g. missing base templates.
-                throw $err;
+            try {
+                $kirby = Kirby::instance();
+                $page = $kirby->site()->page($kirby->get('option', 'error'));
+                if ($page) return $kirby->render($page);
             }
+            // avoid loops
+            catch (Twig_Error $err2) {
+            }
+            // Error page didn't exist or was buggy: rethrow the initial error
+            // Can result in the 'fatal.php' white error page (in Kirby 2.4+
+            // with Whoops active), or an empty response (white page).
+            // That’s consistent with errors for e.g. missing base templates.
+            throw $err;
         }
 
         // Gather information
@@ -331,7 +318,7 @@ class TwigEnv
         // https://github.com/filp/whoops/issues/167
         // https://github.com/twigphp/Twig/issues/1347
         // So we roll our own.
-        $html = Tpl::load(dirname(__DIR__) . '/templates/errorpage.php', [
+        $html = Tpl::load(__DIR__ . '/errorpage.php', [
             'title' => get_class($err),
             'subtitle' => 'Line ' . $line . ' of ' . ($path ? $path : $name),
             'message' => $msg,
@@ -367,32 +354,4 @@ class TwigEnv
         }
         return implode("\n", $excerpt);
     }
-
-    /**
-     * Function used as `new('ClassName')` in Twig templates
-     * Returns a class instance for the provided class name, provided that
-     * this name has been whitelisted in the `twig.env.classes` config.
-     * @param $name
-     * @return mixed
-     * @throws Twig_Error_Runtime
-     */
-    public function makeClassInstance($name)
-    {
-        $args = array_slice(func_get_args(), 1);
-        if (!is_string($name)) {
-            throw new Twig_Error_Runtime("Function \"new\" needs a class name (string) as first parameter");
-        }
-        if (!in_array($name, $this->classes)) {
-            throw new Twig_Error_Runtime("Class \"$name\" is not allowed in option \"twig.env.classes\"");
-        }
-        if (!class_exists($name)) {
-            throw new Twig_Error_Runtime("Unknown class \"$name\"");
-        }
-        if (count($args) > 0) {
-            $reflected = new ReflectionClass($name);
-            return $reflected->newInstanceArgs($args);
-        }
-        return new $name;
-    }
-
 }

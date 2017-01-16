@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Kirby Twig Plugin
+ * @package Kirby Twig Plugin
  * @file Main plugin file when installed manually or with Kirby’s CLI; not used with Composer.
  */
 

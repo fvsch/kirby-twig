@@ -1,11 +1,11 @@
 Using your own functions in templates
 =====================================
 
-If you need to expose PHP functions or classes to your Twig templates, you can list them with those options:
+
+If you need to expose PHP functions (or static class methods) to your Twig templates, you can list them with those options:
 
 - `twig.env.functions`
 - `twig.env.filters`
-- `twig.env.classes`
 
 As with any option in Kirby, you should define these options in your `site/config/config.php`. Let’s show how each option works.
 
@@ -74,30 +74,65 @@ Note that the `::` will be replaced by two underscores (`__`).
 Exposing and using classes
 --------------------------
 
-First you need to whitelist the class(es) you want to be able to instantiate:
+**Breaking change:** Previous versions of Kirby Twig allowed instantiating PHP classes with a `new()` Twig function. This feature was removed in Kirby Twig 3.0.
+
+If you need to use PHP classes in your templates, I recommend two approaches:
+
+1. Do it in a controller instead, and feed the resulting content to your templates. (Kirby documentation: [https://getkirby.com/docs/developer-guide/advanced/controllers](Controllers).)
+2. Write a custom function that returns a class instance.
+
+Let’s look at an example of that second solution:
 
 ```php
-<?php // site/config/config.php
-c::set('twig.env.classes', ['cookie', 'str']);
+// site/plugins/coolplugin/src/verycoolthing.php
+class VeryCoolThing
+{
+    // class implementation
+}
+
+// site/plugins/coolplugin/helpers.php
+function getCoolStuff()
+{
+    return new VeryCoolThing();
+}
+
+// site/config/config.php
+c::set('twig.env.functions', ['getCoolStuff']);
 ```
 
-You can now use the `new()` *function* to instantiate a class.
+Then in your templates, you can use that helper function to get a class instance:
 
 ```twig
-{% set cookie = new('cookie') %}
-{% do cookie.set('test', 'real value') %}
-
-{# Prints 'real value' #}
-{{ cookie.get('test', 'fallback') }}
-
-{# Prints 'salut-ca-va' #}
-{{ new('str').slug('Salut ça va?') }}
+{% set coolThing = getCoolStuff() %}
 ```
 
-If the class constructor takes parameters, you can provide them after the first parameter:
+This example is simplistic; in practice, you might need to pass some parameters around to instanciate your class.
+
+Alternatively, you could define and expose a generic function that allows instantiating any (known) PHP class:
+
+```php
+// site/config/config.php
+
+/**
+ * Make a class instance for the provided class name and parameters
+ */
+function makeInstance($name) {
+  if (!class_exists($name)) {
+    throw new Twig_Error_Runtime("Unknown class \"$name\"");
+  }
+  $args = array_slice(func_get_args(), 1);
+  if (count($args) > 0) {
+    $reflected = new ReflectionClass($name);
+    return $reflected->newInstanceArgs($args);
+  }
+  return new $name;
+}
+
+c::set('twig.env.functions', ['makeInstance']);
+```
+
+Then in Twig templates:
 
 ```twig
-{% set something = new('something', param1, param2) %}
+{% set coolThing = makeInstance('VeryCoolThing') %}
 ```
-
-Finally, note that you probably *should not need to use classes* in templates. If you have a lot of programming-like work to do in a template, try to do that work in a controller instead.
