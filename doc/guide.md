@@ -1,7 +1,8 @@
 Twig templating guide
 =====================
 
-This is a short guide of how to use Twig templates with Kirby CMS. It supposes that you have installed and enabled the Twig Plugin already.
+
+This is a short guide on how to use Twig templates with Kirby CMS. It supposes that you have installed and enabled the Twig Plugin already.
 
 
 Twig basics
@@ -20,19 +21,17 @@ A few basic examples of Twig syntax:
 <h1>{{ page.title }}</h1>
 
 {% if page.abstract.isNotEmpty %}
-<p>{{ page.abstract }}</p>
+  <p>{{ page.abstract }}</p>
 {% endif %}
 
 {# If the 'list' variable is an array or iterable
    object, we can loop on it, yay! #}
 <ul>
 {% for item in list %}
-    <li><a href="{{ item.url }}">{{ item.title }}</li>
+  <li><a href="{{ item.url }}">{{ item.title }}</li>
 {% endfor %}
 </ul>
 ```
-
-If you don’t know Twig already, you should read [Twig for Template Designers](http://twig.sensiolabs.org/doc/templates.html).
 
 
 Tips and tricks
@@ -43,18 +42,14 @@ Tips and tricks
 Trying to use a variable that doesn’t exist will result in an error. If you’re not sure the variable will be defined, you can use the `default` filter:
 
 ```twig
-{# Can be risky: #}
+{# Will still result in an error if the
+   'description' variable does not exist: #}
 {% if description %}
     <meta name="description" value="{{ description }}">
 {% endif %}
 
-{# Safer: #}
-{% if description|default('') %}
-    <meta name="description" value="{{ description }}">
-{% endif %}
-
-{# You can also use this syntax: #}
-{% if description ?? '' %}
+{# Safer test: #}
+{% if description|default(0) %}
     <meta name="description" value="{{ description }}">
 {% endif %}
 ```
@@ -68,7 +63,7 @@ By default, Twig will escape HTML tags and entities (to help prevent [cross-site
    &lt;p&gt;This is a paragraph.&lt;/p&gt; #}
 {{ page.text.kirbytext }}
 
-{# We know it’s going to be HTML, it’s okay: #}
+{# It’s content we trust, use it as is: #}
 {{ page.text.kirbytext | raw }}
 ```
 
@@ -122,6 +117,8 @@ Finally, note that you can use the `source()` function to output the contents of
 </script>
 ```
 
+To learn more about Twig, you should read [Twig for Template Designers](http://twig.sensiolabs.org/doc/1.x/templates.html) and the [Twig Documentation](http://twig.sensiolabs.org/doc/1.x/).
+
 
 Kirby-specific variables and functions
 --------------------------------------
@@ -130,40 +127,52 @@ Kirby-specific variables and functions
 
 The following variables are always available in templates (note that we’re using Twig notation for variables and object methods):
 
--   `page` (page object)
--   `site` (site object)
+-   `page` (Page object for the current page)
+-   `site` (Site object)
 -   `kirby` (Kirby instance)
--   `pages` (page collection with the site’s top-level pages, same as `site.children`)
+-   `pages` (Page collection with the site’s top-level pages, same as `site.children`)
 
-For instance we could work with the `site` object to retrieve all child pages of a `"blog"` page:
+For instance we could work with the `site` object to retrieve all child pages of a `'blog'` page:
 
 ```twig
 {# site/templates/blog.twig #}
 
 {% set posts = site
-    .find('blog')
-    .children
-    .filterBy('status', 'published')
-    .sortBy('date', 'desc') %}
+  .find('blog')
+  .children
+  .filterBy('status', 'published')
+  .sortBy('date', 'desc') %}
 
 <h1>{{ page.title }}</h1>
 
 {% if posts.count %}
-    <ul>
+  <ul>
     {% for post in posts %}
-        <li><a href="{{ post.url }}">{{ post.title }}</a></li>
+      <li><a href="{{ post.url }}">{{ post.title }}</a></li>
     {% endfor %}
-    </ul>
+  </ul>
 {% endif %}
 ```
 
 You can use all of [Kirby’s chaining API](https://getkirby.com/docs/templates/api) for `$page`, `$site`, etc. in your Twig templates, and often that’s all you will ever need.
 
+You will need to do a little bit of translation between the PHP syntax in Kirby’s documentation and the equivalent Twig syntax. For example, this PHP code:
+
+```php
+<?php echo $page->children()->first()->title(); ?>
+```
+
+… translates to the following Twig code:
+
+```twig
+{{ page.children.first.title }}
+```
+
 ### Helper functions
 
 Almost all of [Kirby’s helper functions](https://getkirby.com/docs/cheatsheet#helpers) are available in your Twig templates. This includes things like the `css()`, `js()` or `snippet()` functions.
 
-The few exceptions are:
+The only exceptions are:
 
 -   helpers related to sending emails or writing to files, such as `email`, `upload`, `structure` and `textfile`;
 -   and the `ecco` and `r` helpers, which are trivial to do with Twig syntax (for instance: `{{ condition ? 'yes' : 'no' }}` is the same as Kirby’s `<?php ecco(condition, 'yes', 'no') ?>`.
@@ -171,11 +180,11 @@ The few exceptions are:
 ### Getting config values
 
 -   Use the `c__get(configName, defaultValue)` function in Twig templates to get config values (shortcut for `c::get`).
--   Use the `l__get(configName, defaultValue)` funciton in Twig templates to get language-specific config values or translation strings (shortcut for `l::get`).
+-   Use the `l__get(configName, defaultValue)` function in Twig templates to get language-specific config values or translation strings (shortcut for `l::get`).
 
 ### Kirby Toolkit
 
-The [Kirby Toolkit API](https://getkirby.com/docs/toolkit/api) is not available in Twig templates. Some methods, such as string comparisons, can be done directly with Twig syntax. Other things, like reading from a database, should probably be done in a controller instead.
+The [Kirby Toolkit API](https://getkirby.com/docs/toolkit/api) is not available in Twig templates. Some methods, such as string comparisons, can be done directly with Twig syntax. Other things, like reading from a database, should probably be done in a controller instead (see the next section for more information on controllers).
 
 ### Plugin functions
 
@@ -193,11 +202,11 @@ In the previous example, the part where we defined the `posts` variable could go
 <?php // site/controllers/blog.php
 
 return function($site, $pages, $page) {
-    $data = [];
-    $data['posts'] = $site->find('blog')->children()
-        ->filterBy('status', 'published')
-        ->sortBy('date', 'desc');
-    return $data;
+  $data = [];
+  $data['posts'] = $site->find('blog')->children()
+    ->filterBy('status', 'published')
+    ->sortBy('date', 'desc');
+  return $data;
 };
 ```
 
@@ -209,11 +218,11 @@ And in our template:
 <h1>{{ page.title }}</h1>
 
 {% if posts.count %}
-    <ul>
+  <ul>
     {% for post in posts %}
-        <li><a href="{{ post.url }}">{{ post.title }}</a></li>
+      <li><a href="{{ post.url }}">{{ post.title }}</a></li>
     {% endfor %}
-    </ul>
+  </ul>
 {% endif %}
 ```
 

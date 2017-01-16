@@ -1,9 +1,7 @@
 Twig Plugin for Kirby CMS
 =========================
 
-<figure>
-  <img src="doc/img/kirby-plus-twig.png" width="200" alt="">
-</figure>
+<img src="doc/kirby-twig.png" width="200" alt="">
 
 -   Adds support for [Twig templates](http://twig.sensiolabs.org/) to [Kirby CMS](https://getkirby.com/) (2.3+).
 -   PHP templates still work, you don’t have to rewrite them if you don’t want to.
@@ -16,8 +14,12 @@ Before:
 
 ```php
 <?php /* site/templates/hello.php */ ?>
-<h1><?php echo $page->title() ?></h1>
-<?php echo $page->text()->markdown() ?>
+<h1><?= $page->title() ?></h1>
+<ul>
+<?php foreach ($page->children() as $child): ?>
+  <li><a href="<?= $child->url() ?>"><?= $child->title() ?></li>
+<?php endforeach; ?>
+</ul>
 ```
 
 After:
@@ -25,30 +27,83 @@ After:
 ```twig
 {# site/templates/hello.twig #}
 <h1>{{ page.title }}</h1>
-{{ page.text.markdown | raw }}
+<ul>
+{% for child in page.children %}
+  <li><a href="{{ child.url }}">{{ child.title }}</li>
+{% endfor %}
+</ul>
 ```
 
 
 Installation
 ------------
 
-If you’re using [Kirby’s CLI](https://github.com/getkirby/cli), you can install with:
+### Standard installation
 
-```
-kirby plugin:install fvsch/kirby-twig
-```
+1.  Download [the latest release](https://github.com/fvsch/kirby-twig/archive/master.zip), unzip, rename the `kirby-twig-master` to just `twig` and put it in your project’s `site/plugins` folder. You should end up with a folder structure like this:
+    ```
+    site
+     └─ plugins
+         └─ twig
+             ├─ lib
+             ├─ src
+             └─ twig.php
+    ```
 
-For manual installation:
+2.  To activate the plugin, put `c::set('twig', true);` in your `site/config/config.php`.
 
-1. Download [the latest release](https://github.com/fvsch/kirby-twig/releases) and put it in your `site/plugins` folder.
-2. Rename the copied folder to `twig` (it should be named `site/plugins/twig`).
-3. To activate the plugin, put `c::set('twig', true);` in your `site/config/config.php`.
+
+### Using [Composer](https://getcomposer.org/)
+
+1.  Require `fvsch/kirby-twig` in your dependencies:
+    ```sh
+    composer require fvsch/kirby-twig:^3.0
+    ```
+
+2.  Register the plugin in your `site/config/config.php`:
+    ```php
+    // Register the Twig plugin's template component
+    Kirby\Twig\Plugin::register();
+    ```
 
 
 Usage
 -----
 
-**TODO: shortly describe usage with page template, including a snippet, and twig helper.**
+### Page templates
+
+Now that the plugin is installed and active, you can write Twig templates in the `site/templates` directory. For example, if the text file for your articles is named `post.txt`, you could have a `post.twig` template like this:
+
+```twig
+{% extends '@templates/layout.twig' %}
+{% block content %}
+  <article>
+    <h1>{{ page.title }}</h1>
+    {{ page.text.kirbytext | raw }}
+  </article>
+{% endblock %}
+```
+
+What are the `{% extends '@templates/layout.twig' %}` and `{% block content %}` part? They’re a powerful way to manage having a common page layout for many templates, and only changing the core content (and/or other specific parts). Read [our Twig templating guide](doc/guide.md) for more information.
+
+### Rendering a template in PHP: the `twig` helper
+
+This plugin also enables a `twig` PHP function for rendering template files and strings, like this:
+
+```php
+<?php
+
+// Render a simple template from the site/snippets directory
+echo twig('@snippets/header.twig');
+
+// Same, but passing some additionnal variables
+echo twig('@snippets/header.twig', ['sticky'=>false]);
+
+// Render a string
+echo twig('Hello {{ who }}', ['who'=>'World!']);
+```
+
+If you work with Twig templates for pages, you might not need the `twig()` helper at all. But it can be useful [when working with the Modules and Patterns plugins](doc/plugins.md).
 
 
 More documentation
@@ -56,14 +111,14 @@ More documentation
 
 Recommended reads:
 
--   [Twig templating guide for Kirby](doc/templating.md)
--   [Using your own functions in templates](doc/functions.md)
--   [Complete options documentation](doc/options.md)
+-   [Twig templating guide for Kirby](doc/guide.md)
+-   [Displaying Twig errors](doc/errors.md)
 
 Other topics:
 
--   [How errors are displayed (or not)](doc/errors.md)
--   [Twig support in Kirby plugins](doc/plugins.md)
+-   [Complete options documentation](doc/options.md)
+-   [Using your own functions in templates](doc/functions.md)
+-   [Using Kirby Twig with other plugins](doc/plugins.md)
 
 
 Credits

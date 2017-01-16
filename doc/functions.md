@@ -1,37 +1,55 @@
 Using your own functions in templates
 =====================================
 
+If you need to expose PHP functions or classes to your Twig templates, you can list them with those options:
 
-If you need to expose PHP functions or classes to your Twig templates, you can list them with those two options:
+- `twig.env.functions`
+- `twig.env.filters`
+- `twig.env.classes`
 
--   `twig.env.functions` (for functions or static methods of classes)
--   `twig.env.classes` (for classes, which must be instantiated with a `new()` Twig function)
+As with any option in Kirby, you should define these options in your `site/config/config.php`. Let’s show how each option works.
 
 
 Exposing a function
 -------------------
 
-For example if you have a custom function defined in your own plugin file:
+For example if you have a custom function defined in your own plugin file (`site/plugins/myplugin.php`):
 
 ```php
-<?php // site/plugins/myplugin.php
-
-function myFunction() {
-    return 'Hello';
+<?php
+/**
+ * Returns a welcoming message
+ * @param  string $who
+ * @return string
+ */
+function sayHello($who='') {
+    return 'Hello' . (is_string($who) ? ' ' . $who : '');
 }
 ```
 
-You could tell the Twig plugin to make it available in your templates:
+You can make it available as a Twig function:
 
 ```php
-<?php // site/config/config.php
-c::set('twig.env.functions', ['myFunction']);
+c::set('twig.env.functions', ['sayHello']);
 ```
 
 ```twig
-{# Prints 'Hello' #}
-{{ myFunction() }}
+{# Prints 'Hello Jane' #}
+{{ sayHello('Jane') }}
 ```
+
+Or you could expose it as a Twig filter:
+
+```php
+c::set('twig.env.filters', ['sayHello']);
+```
+
+```twig
+{# Prints 'Hello Jane' #}
+{{ 'Jane'|sayHello }}
+```
+
+I recommend sticking to the Twig function syntax, and only using Twig’s built-in filters. Of course, you should do what you like best.
 
 
 Exposing static methods
@@ -40,7 +58,6 @@ Exposing static methods
 If you just need a couple static methods, you can use the same solution:
 
 ```php
-<?php // site/config/config.php
 c::set('twig.env.functions', ['cookie::set', 'cookie::get']);
 ```
 
@@ -83,4 +100,4 @@ If the class constructor takes parameters, you can provide them after the first 
 {% set something = new('something', param1, param2) %}
 ```
 
-Finally, note that you probably *should not need to use classes* in templates. If you have a lot of programming-like work to do in a template, you should probably do that work in a controller instead.
+Finally, note that you probably *should not need to use classes* in templates. If you have a lot of programming-like work to do in a template, try to do that work in a controller instead.

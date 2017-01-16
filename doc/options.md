@@ -1,7 +1,9 @@
 Options documentation
 =====================
 
-## Basic options
+
+Basic options
+-------------
 
 ```php
 // REQUIRED: activate Twig plugin
@@ -10,27 +12,30 @@ c::set('twig', true);
 // Should we use .php templates as fallback when .twig
 // templates don't exist? Set to false to only allow Twig templates
 c::set('twig.usephp', true);
-
-// Kirby URI of a page to render when there is a Twig error in production
-// For instance 'error/system'. Falls back to c::get('error').
-c::set('twig.error', '');
 ```
 
-## Customizing the Twig environment
+
+Customizing the Twig environment
+--------------------------------
 
 ```php
-// List of additional functions that should be available in templates
-c::set('twig.env.functions', ['myCustomFunction']);
-
-// List of classes that can be instantiated from templates (with the `new()` function)
-c::set('twig.env.classes', ['SomeClass']);
-
 // Define a directory as a Twig namespace, that can be used as:
 //   {% include '@mynamespace/something.twig' %}
 c::set('twig.namespace.mynamespace', kirby()->roots()->index().'/mydirectory');
+
+// List of additional functions that should be available in templates
+c::set('twig.env.functions', ['myCustomFunction']);
+
+// List of additional functions that should be available as Twig filters
+c::set('twig.env.filters', ['myCustomFilter']);
+
+// List of classes that can be instantiated from templates (with the `new()` function)
+c::set('twig.env.classes', ['SomeClass']);
 ```
 
-## Advanced
+
+Advanced
+--------
 
 ```php
 // Use Twig’s PHP cache?
