@@ -3,6 +3,7 @@
 namespace Kirby\Twig;
 
 use C;
+use Closure;
 use Escape;
 use Kirby;
 use Response;
@@ -113,56 +114,62 @@ class TwigEnv
      */
     public function __construct()
     {
-        $this->debug = c::get('debug', false);
-
         $kirby = Kirby::instance();
+        $this->debug = $kirby->get('option', 'debug', false);
         $this->templateDir = $kirby->roots()->templates();
-        $cacheDir = $kirby->roots()->cache() . '/twig';
 
-        $options  = [
-            'debug' => $this->debug,
-            'strict_variables' => c::get('twig.strict', $this->debug),
-            'cache' => c::get('twig.cache', false) ? $cacheDir : false,
-            'autoescape' => c::get('twig.autoescape', true)
+        // Get environment & user config
+        $options = [
+            'core' => [
+                'debug' => $this->debug,
+                'strict_variables' => c::get('twig.strict', $this->debug),
+                'autoescape' => c::get('twig.autoescape', true),
+                'cache' => false
+            ],
+            'namespace' => [
+                'templates' => $this->templateDir,
+                'snippets' => $kirby->roots->snippets(),
+                'plugins' => $kirby->roots->plugins(),
+                'assets' => $kirby->roots->assets()
+            ],
+            'function' => $this->cleanNames(array_merge(
+                $this->defaultFunctions,
+                c::get('twig.env.functions', [])
+            )),
+            'filter' => $this->cleanNames(c::get('twig.env.filters', []))
         ];
 
-        // Set up loader
-        $loader = new Twig_Loader_Filesystem($this->templateDir);
+        // Set cache directory
+        if (c::get('twig.cache')) {
+            $options['core']['cache'] = $kirby->roots()->cache() . '/twig';
+        }
 
-        // Add namespaces
-        $namespaces = [
-            'templates' => $this->templateDir,
-            'snippets' => $kirby->roots->snippets(),
-            'plugins' => $kirby->roots->plugins(),
-            'assets' => $kirby->roots->assets()
-        ];
-        foreach (array_keys($kirby->options()) as $key) {
-            if (strpos($key, 'twig.namespace.') === 0) {
-                $name = str_replace('twig.namespace.', '', $key);
-                $path = $kirby->option($key);
-                if (is_string($path)) {
-                    $loader->addPath($path, $name);
-                }
+        // Look at 'twig.abc.xYz' options to find namespaces, functions & filters
+        foreach (array_keys($kirby->options) as $key) {
+            $p = '/^twig\.(env\.)?([a-z]+)\.([a-zA-Z_-]+)$/';
+            if (preg_match($p, $key, $m) === 1 && array_key_exists($m[2], $options)) {
+                $options[ $m[2] ][ $m[3] ] = $kirby->get('option', $key);
             }
         }
-        foreach ($namespaces as $name => $path) {
-            $loader->addPath($path, $name);
+
+        // Set up the template loader
+        $loader = new Twig_Loader_Filesystem($this->templateDir);
+        foreach ($options['namespace'] as $key=>$path) {
+            if (is_string($path)) $loader->addPath($path, $key);
         }
 
         // Start up Twig
-        $this->twig = new Twig_Environment($loader, $options);
+        $this->twig = new Twig_Environment($loader, $options['core']);
 
         // Enable Twig’s dump function
         $this->twig->addExtension(new Twig_Extension_Debug());
 
         // Plug in functions and filters
-        $functions = c::get('twig.env.functions', []);
-        $filters = c::get('twig.env.filters', []);
-        foreach (array_merge($this->defaultFunctions, $functions) as $fn) {
-            $this->addCallable('function', $fn);
+        foreach ($options['function'] as $name => $func) {
+            $this->addCallable('function', $name, $func);
         }
-        foreach ($filters as $fn) {
-            $this->addCallable('filter', $fn);
+        foreach ($options['filter'] as $name => $func) {
+            $this->addCallable('filter', $name, $func);
         }
 
         // Make sure the instance is stored / overwritten
@@ -170,22 +177,43 @@ class TwigEnv
     }
 
     /**
+     * Clean up function names for use in Twig templates
+     * Returns ['twig name' => 'callable name']
+     * @param  array $source
+     * @return array
+     */
+    private function cleanNames($source)
+    {
+        $names = [];
+        foreach ($source as $name) {
+            if (!is_string($name)) continue;
+            $key = str_replace('::', '__', $name);
+            $names[$key] = trim($name, '*');
+        }
+        return $names;
+    }
+
+    /**
      * Expose a function to the Twig environment as a function or filter
      * @param string $type
      * @param string $name
+     * @param string|Closure $func
      */
-    private function addCallable($type='function', $name)
+    private function addCallable($type='function', $name, $func)
     {
-        if (!is_string($name)) return;
-        $callName = trim($name, '* ');
-        if (!is_callable($callName)) return;
-        $twigName = str_replace('::', '__', $callName);
-        $params = strpos($name, '*') !== false ? ['is_safe' => ['html']] : [];
+        if (!is_string($name) || !is_callable($func)) {
+            return;
+        }
+        $twname = trim($name, '*');
+        $params = [];
+        if (strpos($name, '*') === 0) {
+            $params['is_safe'] = ['html'];
+        }
         if ($type === 'function') {
-            $this->twig->addFunction(new Twig_SimpleFunction($twigName, $callName, $params));
+            $this->twig->addFunction(new Twig_SimpleFunction($twname, $func, $params));
         }
         if ($type === 'filter') {
-            $this->twig->addFilter(new Twig_SimpleFilter($twigName, $callName, $params));
+            $this->twig->addFilter(new Twig_SimpleFilter($twname, $func, $params));
         }
     }
 
