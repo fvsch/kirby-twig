@@ -41,15 +41,18 @@ Installation
 ### Standard installation
 
 1.  Download [the latest release](https://github.com/fvsch/kirby-twig/archive/master.zip).
-2.  Unzip, rename the `kirby-twig-master` folder to just `twig` and put it in your project’s `site/plugins` folder. You should end up with a folder structure like this:
-    ```
-    site
-     └─ plugins
-         └─ twig
-             ├─ lib
-             ├─ src
-             └─ twig.php
-    ```
+2.  Unzip, rename the `kirby-twig-master` folder to just `twig` and put it in your project’s `site/plugins` folder.
+
+You should end up with a folder structure like this:
+
+```
+site
+ └─ plugins
+     └─ twig
+         ├─ lib
+         ├─ src
+         └─ twig.php
+```
 
 ### Using [Composer](https://getcomposer.org/)
 
@@ -82,7 +85,7 @@ Now that the plugin is installed and active, you can write Twig templates in the
 {% endblock %}
 ```
 
-What are the `{% extends '@templates/layout.twig' %}` and `{% block content %}` part? They’re a powerful way to manage having a common page layout for many templates, and only changing the core content (and/or other specific parts). Read [our Twig templating guide](doc/guide.md) for more information.
+See the `{% extends '@templates/layout.twig' %}` and `{% block content %}` parts? They’re a powerful way to manage having a common page layout for many templates, and only changing the core content (and/or other specific parts). Read [our Twig templating guide](doc/guide.md) for more information.
 
 ### Rendering a template in PHP: the `twig` helper
 
