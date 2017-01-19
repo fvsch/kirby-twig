@@ -63,11 +63,8 @@ c::set('twig.namespace.myplugin', __DIR__ . '/templates');
 /**
  * Expose functions from our plugin to the Twig environment
  */
-$twigFunctionNames = array_merge(
-    c::get('twig.env.functions', []),
-    ['myPluginFunction', 'myOtherFunction']
-);
-c::set('twig.env.functions', $twigFunctionNames);
+c::set('twig.function.myPluginHelper', 'myPluginHelper');
+c::set('twig.function.myOtherHelper', 'myOtherHelper');
 ```
 
 See [“Using your own functions in templates”](functions.md) for more details about exposing functions, static methods and classes to templates.

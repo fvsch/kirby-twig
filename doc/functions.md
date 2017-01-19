@@ -4,8 +4,8 @@ Using your own functions in templates
 
 If you need to expose PHP functions (or static class methods) to your Twig templates, you can list them with those options:
 
-- `twig.env.functions`
-- `twig.env.filters`
+- `twig.function.*`
+- `twig.filter.*`
 
 As with any option in Kirby, you should define these options in your `site/config/config.php`. Let’s show how each option works.
 
@@ -13,7 +13,23 @@ As with any option in Kirby, you should define these options in your `site/confi
 Exposing a function
 -------------------
 
-For example if you have a custom function defined in your own plugin file (`site/plugins/myplugin.php`):
+The expected syntax for these configuration options is:
+
+```php
+// In site/config/config.php:
+c::set('twig.function.myFunctionName', $someFunction);
+```
+
+Where:
+
+-   `myFunctionName` is any name you want (only letters and underscores), and is the name that will be available in your Twig templates.
+-   `$someFunction` can be a string, or a Closure.
+
+Let’s use more tangible examples.
+
+### Using a function name (string)
+
+If you have a custom function defined in a plugin file (e.g. `site/plugins/myplugin.php`):
 
 ```php
 <?php
@@ -23,14 +39,14 @@ For example if you have a custom function defined in your own plugin file (`site
  * @return string
  */
 function sayHello($who='') {
-    return 'Hello' . (is_string($who) ? ' ' . $who : '');
+  return 'Hello' . (is_string($who) ? ' ' . $who : '');
 }
 ```
 
 You can make it available as a Twig function:
 
 ```php
-c::set('twig.env.functions', ['sayHello']);
+c::set('twig.function.sayHello', 'sayHello');
 ```
 
 ```twig
@@ -41,7 +57,7 @@ c::set('twig.env.functions', ['sayHello']);
 Or you could expose it as a Twig filter:
 
 ```php
-c::set('twig.env.filters', ['sayHello']);
+c::set('twig.filter.sayHello', 'sayHello');
 ```
 
 ```twig
@@ -51,23 +67,30 @@ c::set('twig.env.filters', ['sayHello']);
 
 I recommend sticking to the Twig function syntax, and only using Twig’s built-in filters. Of course, you should do what you like best.
 
+### Using an anonymous function
 
-Exposing static methods
------------------------
-
-If you just need a couple static methods, you can use the same solution:
+The `twig.function.*` and `twig.filter.*` configs accept anonymous functions (called closures in PHP):
 
 ```php
-c::set('twig.env.functions', ['cookie::set', 'cookie::get']);
+c::set('twig.function.sayHello', function($who='') {
+    return 'Hello' . (is_string($who) ? ' ' . $who : '');
+}
 ```
 
-Note that the `::` will be replaced by two underscores (`__`).
+### Exposing static methods
+
+You can also expose static methods, using the string syntax:
+
+```php
+c::set('twig.function.setCookie', 'Cookie::set');
+c::set('twig.function.getCookie', 'Cookie::get');
+```
 
 ```twig
-{% do cookie__set('test', 'real value') %}
+{% do setCookie('test', 'real value') %}
 
 {# Prints 'real value' #}
-{{ cookie__get('test', 'fallback') }}
+{{ getCookie('test', 'fallback') }}
 ```
 
 
@@ -87,20 +110,16 @@ Let’s look at an example of that second solution:
 // site/plugins/coolplugin/src/verycoolthing.php
 class VeryCoolThing
 {
-    // class implementation
-}
-
-// site/plugins/coolplugin/helpers.php
-function getCoolStuff()
-{
-    return new VeryCoolThing();
+  // class implementation
 }
 
 // site/config/config.php
-c::set('twig.env.functions', ['getCoolStuff']);
+c::set('twig.function.getCoolStuff', function(){
+  return new VeryCoolThing();
+});
 ```
 
-Then in your templates, you can use that helper function to get a class instance:
+Then in your templates, you can use that function to get a class instance:
 
 ```twig
 {% set coolThing = getCoolStuff() %}
@@ -115,8 +134,10 @@ Alternatively, you could define and expose a generic function that allows instan
 
 /**
  * Make a class instance for the provided class name and parameters
+ * Giving this function the name 'new' in Twig templates, for
+ * backwards compatibility with Kirby Twig 2.x.
  */
-function makeInstance($name) {
+c::set('twig.function.new', function($name) {
   if (!class_exists($name)) {
     throw new Twig_Error_Runtime("Unknown class \"$name\"");
   }
@@ -126,13 +147,11 @@ function makeInstance($name) {
     return $reflected->newInstanceArgs($args);
   }
   return new $name;
-}
-
-c::set('twig.env.functions', ['makeInstance']);
+});
 ```
 
 Then in Twig templates:
 
 ```twig
-{% set coolThing = makeInstance('VeryCoolThing') %}
+{% set coolThing = new('VeryCoolThing') %}
 ```
