@@ -40,7 +40,8 @@ Installation
 
 ### Standard installation
 
-1.  Download [the latest release](https://github.com/fvsch/kirby-twig/archive/master.zip), unzip, rename the `kirby-twig-master` to just `twig` and put it in your project’s `site/plugins` folder. You should end up with a folder structure like this:
+1.  Download [the latest release](https://github.com/fvsch/kirby-twig/archive/master.zip).
+2.  Unzip, rename the `kirby-twig-master` folder to just `twig` and put it in your project’s `site/plugins` folder. You should end up with a folder structure like this:
     ```
     site
      └─ plugins
@@ -49,9 +50,6 @@ Installation
              ├─ src
              └─ twig.php
     ```
-
-2.  To activate the plugin, put `c::set('twig', true);` in your `site/config/config.php`.
-
 
 ### Using [Composer](https://getcomposer.org/)
 

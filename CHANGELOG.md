@@ -6,6 +6,7 @@ v3.0.0
 
 **Breaking changes:**
 
+- Removed the `twig` boolean option. The plugin is now active if it’s installed (classical installation). For Composer installs, there is a separate registering step.
 - Removed the `twig.env.classes` option and `new()` Twig function.
 - Twig’s template cache is now disabled by default (enable with `c::set('twig.cache', true);`).
 - Error reporting: the `twig.error` config key is now ignored. Instead, the site’s main error page (whose URI is `error` by default) will be used in some specific situations. See `doc/errors.md` for details.
