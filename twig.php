@@ -11,6 +11,4 @@ load([
     'kirby\twig\twigenv'       => __DIR__.'/src/TwigEnv.php'
 ]);
 
-if (c::get('twig', false)) {
-    Kirby\Twig\Plugin::register();
-}
+Kirby\Twig\Plugin::register();
