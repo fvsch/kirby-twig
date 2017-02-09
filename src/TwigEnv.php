@@ -154,8 +154,11 @@ class TwigEnv
 
         // Set up the template loader
         $loader = new Twig_Loader_Filesystem($this->templateDir);
+        $canSkip = ['snippets', 'plugins', 'assets'];
         foreach ($options['namespace'] as $key=>$path) {
-            if (is_string($path)) $loader->addPath($path, $key);
+            if (!is_string($path)) continue;
+            if (in_array($key, $canSkip) && !file_exists($path)) continue;
+            $loader->addPath($path, $key);
         }
 
         // Start up Twig
