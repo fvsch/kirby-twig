@@ -14,7 +14,7 @@ use Twig_SimpleFunction;
 use Twig_SimpleFilter;
 use Twig_Extension_Debug;
 use Twig_Error;
-use Twig_Error_Runtime;
+use Twig_Error_Loader;
 
 
 /**
@@ -27,10 +27,10 @@ use Twig_Error_Runtime;
 class TwigEnv
 {
     /** @var Twig_Environment */
-    private $twig = null;
+    public $twig = null;
 
     /** @var boolean */
-    private $debug = false;
+    public $debug = false;
 
     /** @var TwigEnv */
     private static $instance = null;
@@ -110,12 +110,12 @@ class TwigEnv
 
     /**
      * Prepare the Twig environment
-     * @throws Twig_Error_Runtime
+     * @throws Twig_Error_Loader
      */
     public function __construct()
     {
         $kirby = Kirby::instance();
-        $this->debug = $kirby->get('option', 'debug', false);
+        $this->debug = $kirby->get('option', 'debug');
         $this->templateDir = $kirby->roots()->templates();
 
         // Get environment & user config
@@ -145,10 +145,10 @@ class TwigEnv
         }
 
         // Look at 'twig.abc.xYz' options to find namespaces, functions & filters
-        foreach (array_keys($kirby->options) as $key) {
-            $p = '/^twig\.(env\.)?([a-z]+)\.([a-zA-Z_-]+)$/';
+        foreach (array_keys(c::$data) as $key) {
+            $p = '/^twig\.(env\.)?([a-z]+)\.(\*?[a-zA-Z][a-zA-Z0-9_\-]*)$/';
             if (preg_match($p, $key, $m) === 1 && array_key_exists($m[2], $options)) {
-                $options[ $m[2] ][ $m[3] ] = $kirby->get('option', $key);
+                $options[ $m[2] ][ $m[3] ] = c::get($key);
             }
         }
 
@@ -180,47 +180,6 @@ class TwigEnv
     }
 
     /**
-     * Clean up function names for use in Twig templates
-     * Returns ['twig name' => 'callable name']
-     * @param  array $source
-     * @return array
-     */
-    private function cleanNames($source)
-    {
-        $names = [];
-        foreach ($source as $name) {
-            if (!is_string($name)) continue;
-            $key = str_replace('::', '__', $name);
-            $names[$key] = trim($name, '*');
-        }
-        return $names;
-    }
-
-    /**
-     * Expose a function to the Twig environment as a function or filter
-     * @param string $type
-     * @param string $name
-     * @param string|Closure $func
-     */
-    private function addCallable($type='function', $name, $func)
-    {
-        if (!is_string($name) || !is_callable($func)) {
-            return;
-        }
-        $twname = trim($name, '*');
-        $params = [];
-        if (strpos($name, '*') === 0) {
-            $params['is_safe'] = ['html'];
-        }
-        if ($type === 'function') {
-            $this->twig->addFunction(new Twig_SimpleFunction($twname, $func, $params));
-        }
-        if ($type === 'filter') {
-            $this->twig->addFilter(new Twig_SimpleFilter($twname, $func, $params));
-        }
-    }
-
-    /**
      * Return a new instance or the cached instance if it exists
      * @return TwigEnv
      */
@@ -236,10 +195,11 @@ class TwigEnv
      * Render a Twig template from a file path,
      * similarly to how Tpl::load renders a PHP template
      * @param string $filePath
-     * @param array  $tplData
-     * @param bool   $return
-     * @param bool   $isPage
-     * @return string|null
+     * @param array $tplData
+     * @param bool $return
+     * @param bool $isPage
+     * @return string
+     * @throws Twig_Error
      */
     public function renderPath($filePath='', $tplData=[], $return=true, $isPage=false)
     {
@@ -259,14 +219,16 @@ class TwigEnv
         // Kirby\Component\Template::render.
         if ($return) return $content;
         echo $content;
-        return null;
     }
 
     /**
      * Render a Twig template from a string
      * @param  string $tplString
-     * @param  array  $tplData
+     * @param  array $tplData
      * @return string
+     * @throws Twig_Error
+     * @throws \Exception
+     * @throws \Throwable
      */
     public function renderString($tplString='', $tplData=[])
     {
@@ -384,5 +346,46 @@ class TwigEnv
             }
         }
         return implode("\n", $excerpt);
+    }
+
+    /**
+     * Clean up function names for use in Twig templates
+     * Returns ['twig name' => 'callable name']
+     * @param  array $source
+     * @return array
+     */
+    private function cleanNames($source)
+    {
+        $names = [];
+        foreach ($source as $name) {
+            if (!is_string($name)) continue;
+            $key = str_replace('::', '__', $name);
+            $names[$key] = trim($name, '*');
+        }
+        return $names;
+    }
+
+    /**
+     * Expose a function to the Twig environment as a function or filter
+     * @param string $type
+     * @param string $name
+     * @param string|Closure $func
+     */
+    private function addCallable($type='function', $name, $func)
+    {
+        if (!is_string($name) || !is_callable($func)) {
+            return;
+        }
+        $twname = trim($name, '*');
+        $params = [];
+        if (strpos($name, '*') === 0) {
+            $params['is_safe'] = ['html'];
+        }
+        if ($type === 'function') {
+            $this->twig->addFunction(new Twig_SimpleFunction($twname, $func, $params));
+        }
+        if ($type === 'filter') {
+            $this->twig->addFilter(new Twig_SimpleFilter($twname, $func, $params));
+        }
     }
 }

@@ -4,8 +4,8 @@ Using your own functions in templates
 
 If you need to expose PHP functions (or static class methods) to your Twig templates, you can list them with those options:
 
-- `twig.function.*`
-- `twig.filter.*`
+- `twig.function.[…]`
+- `twig.filter.[…]`
 
 As with any option in Kirby, you should define these options in your `site/config/config.php`. Let’s show how each option works.
 
@@ -69,7 +69,7 @@ I recommend sticking to the Twig function syntax, and only using Twig’s built-
 
 ### Using an anonymous function
 
-The `twig.function.*` and `twig.filter.*` configs accept anonymous functions (called closures in PHP):
+The `twig.function.[…]` and `twig.filter.[…]` configs accept anonymous functions (called closures in PHP):
 
 ```php
 c::set('twig.function.sayHello', function($who='') {
@@ -91,6 +91,20 @@ c::set('twig.function.getCookie', 'Cookie::get');
 
 {# Prints 'real value' #}
 {{ getCookie('test', 'fallback') }}
+```
+
+### Marking a function’s output as safe
+
+By default, Twig escapes strings returned by functions, to avoid security attacks such as cross-site scripting. This is why you often need to ask Twig to ouptut a raw, unescaped string:
+
+```twig
+{{ page.text.markdown | raw }}
+```
+
+Alternatively, when declaring a Twig function you can mark it as safe for HTML output by adding a `*` before its name, like this:
+
+```php
+c::set('twig.function.*sayHello', 'sayHello');
 ```
 
 
