@@ -1,0 +1,23 @@
+{
+    "name": "fvsch/kirby-twig",
+    "description": "Twig templating support for Kirby CMS",
+    "type": "plugin",
+    "require": {
+        "twig/twig": "^2.5"
+    },
+    "autoload": {
+        "files": [
+            "config.php"
+        ],
+        "psr-4": {
+            "fvsch\\Twig\\": "src/classes/"
+        }
+    },
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Florens Verschelde",
+            "email": "florens@fvsch.com"
+        }
+    ]
+}
