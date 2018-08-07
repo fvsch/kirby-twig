@@ -2,12 +2,13 @@
 
 namespace fvsch\Twig;
 
-use C;
 use Closure;
-use Escape;
 use Kirby;
 use Response;
-use Tpl;
+use Kirby\Cms\App;
+use Kirby\Toolkit\Html;
+use Kirby\Toolkit\Tpl;
+
 use Twig_Environment;
 use Twig_Loader_Filesystem;
 use Twig_SimpleFunction;
@@ -24,7 +25,7 @@ use Twig_Error_Loader;
  * @package  Kirby Twig Plugin
  * @author   Florens Verschelde <florens@fvsch.com>
  */
-class TwigEnv
+class Environment
 {
     /** @var Twig_Environment */
     public $twig = null;
@@ -49,11 +50,12 @@ class TwigEnv
      */
     private $defaultFunctions = [
         '*attr',
-        '*brick',
         // Get config value
-        'c::get',
+        'option',
         // Skipping: call - Allows calling any PHP function
-        'csrf',
+        '*csrf',
+        '*csrf_field',
+        '*honeypot_field',
         '*css',
         // Skipping: dump - Twig has one, and its ouput seems buggy anyway (prints the result twice?)
         // Skipping: e, ecco - Twig syntax is simple: {{ condition ? 'a' : 'b' }}
@@ -102,65 +104,67 @@ class TwigEnv
         '*youtube',
     ];
 
-    /**
-     * Cache of $kirby->roots()->templates()
-     * @var string
-     */
     private $templateDir = null;
 
     /**
      * Prepare the Twig environment
      * @throws Twig_Error_Loader
      */
-    public function __construct()
+    public function __construct($viewPath)
     {
         $kirby = Kirby::instance();
-        $this->debug = $kirby->get('option', 'debug');
-        $this->templateDir = $kirby->roots()->templates();
+        $this->debug = option('debug');
+        $this->templateDir = $viewPath;
 
         // Get environment & user config
         $options = [
             'core' => [
                 'debug' => $this->debug,
-                'strict_variables' => c::get('twig.strict', $this->debug),
-                'autoescape' => c::get('twig.autoescape', true),
+                'strict_variables' => option('fvsch.twig.strict', $this->debug),
+                'autoescape' => option('fvsch.twig.autoescape', 'html'),
                 'cache' => false
             ],
             'namespace' => [
                 'templates' => $this->templateDir,
-                'snippets' => $kirby->roots->snippets(),
-                'plugins' => $kirby->roots->plugins(),
-                'assets' => $kirby->roots->assets()
+                'snippets' => kirby()->roots()->snippets(),
+                'plugins' => kirby()->roots()->plugins(),
+                'assets' => kirby()->roots()->assets()
             ],
+            'paths' => [],
             'function' => $this->cleanNames(array_merge(
                 $this->defaultFunctions,
-                c::get('twig.env.functions', [])
+                option('fvsch.twig.env.functions', [])
             )),
-            'filter' => $this->cleanNames(c::get('twig.env.filters', []))
+            'filter' => $this->cleanNames(option('fvsch.twig.env.filters', []))
         ];
 
         // Set cache directory
-        if (c::get('twig.cache')) {
-            $options['core']['cache'] = $kirby->roots()->cache() . '/twig';
+        if (option('fvsch.twig.cache')) {
+            $options['core']['cache'] = kirby()->roots()->cache() . '/twig';
         }
 
         // Look at 'twig.abc.xYz' options to find namespaces, functions & filters
-        foreach (array_keys(c::$data) as $key) {
-            $p = '/^twig\.(env\.)?([a-z]+)\.(\*?[a-zA-Z][a-zA-Z0-9_\-]*)$/';
+        foreach (array_keys(App::instance()->options()) as $key) {
+            $p = '/^fvsch.twig\.(env\.)?([a-z]+)\.(\*?[a-zA-Z][a-zA-Z0-9_\-]*)$/';
             if (preg_match($p, $key, $m) === 1 && array_key_exists($m[2], $options)) {
-                $options[ $m[2] ][ $m[3] ] = c::get($key);
+                $options[ $m[2] ][ $m[3] ] = option($key);
             }
         }
-
+        
         // Set up the template loader
         $loader = new Twig_Loader_Filesystem($this->templateDir);
-        $canSkip = ['snippets', 'plugins', 'assets'];
+        $canSkip = ['snippets', 'plugins', 'assets'];   
         foreach ($options['namespace'] as $key=>$path) {
             if (!is_string($path)) continue;
             if (in_array($key, $canSkip) && !file_exists($path)) continue;
             $loader->addPath($path, $key);
         }
-
+        
+        $options['paths'] = option('fvsch.twig.paths', []);
+        foreach ($options['paths'] as $path) {
+            $loader->addPath($path);
+        }
+        
         // Start up Twig
         $this->twig = new Twig_Environment($loader, $options['core']);
 
@@ -201,7 +205,7 @@ class TwigEnv
      * @return string
      * @throws Twig_Error
      */
-    public function renderPath($filePath='', $tplData=[], $return=true, $isPage=false)
+    public function renderPath($filePath='', $tplData=[], $isPage=false)
     {
         // Remove the start of the templates path, since Twig asks
         // for a path starting from one of the registered directories.
@@ -215,10 +219,7 @@ class TwigEnv
             $content = $this->error($err, $isPage);
         }
 
-        // Mimicking the API of Tpl::load and how it's called by
-        // Kirby\Component\Template::render.
-        if ($return) return $content;
-        echo $content;
+        return $content;
     }
 
     /**
@@ -279,7 +280,8 @@ class TwigEnv
         }
 
         // Gather information
-        $name = $err->getTemplateName();
+        $sourceContext = $err->getSourceContext();
+        $name = $sourceContext->getName();
         $line = $err->getTemplateLine();
         $msg  = $err->getRawMessage();
         $path = null;
@@ -289,6 +291,7 @@ class TwigEnv
                 $source = $this->twig->getLoader()->getSourceContext($name);
                 $path = $source->getPath();
                 $code = $source->getCode();
+                
             }
             catch (Twig_Error $err2) {}
         }
@@ -311,7 +314,7 @@ class TwigEnv
         // https://github.com/filp/whoops/issues/167
         // https://github.com/twigphp/Twig/issues/1347
         // So we roll our own.
-        $html = Tpl::load(__DIR__ . '/errorpage.php', [
+        $html = Tpl::load(dirname(__DIR__) . '/errorpage.php', [
             'title' => get_class($err),
             'subtitle' => 'Line ' . $line . ' of ' . ($path ? $path : $name),
             'message' => $msg,
@@ -331,7 +334,7 @@ class TwigEnv
     private function getSourceExcerpt($source='', $line=1, $plus=1, $format=false)
     {
         $excerpt = [];
-        $twig  = Escape::html($source);
+        $twig  = Html::encode($source, false);
         $lines = preg_split("/(\r\n|\n|\r)/", $twig);
         $start = max(1, $line - $plus);
         $limit = min(count($lines), $line + $plus);
