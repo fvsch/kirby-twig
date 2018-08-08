@@ -10,7 +10,6 @@ use Kirby\Toolkit\Html;
 use Kirby\Toolkit\Tpl;
 
 use Twig_Environment;
-use Twig_Loader_Filesystem;
 use Twig_SimpleFunction;
 use Twig_SimpleFilter;
 use Twig_Extension_Debug;
@@ -152,7 +151,7 @@ class Environment
         }
         
         // Set up the template loader
-        $loader = new Twig_Loader_Filesystem($this->templateDir);
+        $loader = new LoaderFilesystem($this->templateDir);
         $canSkip = ['snippets', 'plugins', 'assets'];   
         foreach ($options['namespace'] as $key=>$path) {
             if (!is_string($path)) continue;
