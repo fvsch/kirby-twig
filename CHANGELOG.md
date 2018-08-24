@@ -1,8 +1,16 @@
 Kirby Twig Plugin: Change log
 =============================
 
-v3.0.0
-------
+## v3.0.2
+
+- #29 Fix loading some templates on Windows
+
+## v3.0.1
+
+- #25 Can't register namespaces, functions & filters in plugins
+- #26 Somehow allow adding safe functions
+
+## v3.0.0
 
 **Breaking changes:**
 
@@ -18,8 +26,7 @@ Deprecated (still working):
 - `twig.env.filters` in favor of `twig.filter.myFilter`;
 - `twig.env.namespace.xyz` in favor of `twig.namespace.xyz`.
 
-v2.x
-----
+## v2.x
 
 See on GitHub:
 
@@ -30,8 +37,7 @@ See on GitHub:
 - [v2.0.1](https://github.com/fvsch/kirby-twig/releases/tag/v2.0.1)
 - [v2.0.0](https://github.com/fvsch/kirby-twig/releases/tag/v2.0.0)
 
-v1.x
-----
+## v1.x
 
 - [v1.3.0](https://github.com/fvsch/kirby-twig/releases/tag/v1.3.0)
 - [v1.2.0](https://github.com/fvsch/kirby-twig/releases/tag/v1.2.0)
