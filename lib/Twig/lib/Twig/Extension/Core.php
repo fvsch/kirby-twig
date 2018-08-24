@@ -467,7 +467,7 @@ function twig_date_converter(Twig_Environment $env, $date = null, $timezone = nu
  *
  * @param string            $str  String to replace in
  * @param array|Traversable $from Replace values
- * @param string|null       $to   Replace to, deprecated (@see http://php.net/manual/en/function.strtr.php)
+ * @param string|null       $to   Replace to, deprecated (@see https://secure.php.net/manual/en/function.strtr.php)
  *
  * @return string
  */
@@ -661,7 +661,7 @@ function twig_slice(Twig_Environment $env, $item, $start, $length = null, $prese
 
         if ($start >= 0 && $length >= 0 && $item instanceof Iterator) {
             try {
-                return iterator_to_array(new LimitIterator($item, $start, $length === null ? -1 : $length), $preserveKeys);
+                return iterator_to_array(new LimitIterator($item, $start, null === $length ? -1 : $length), $preserveKeys);
             } catch (OutOfBoundsException $exception) {
                 return array();
             }
@@ -1000,7 +1000,7 @@ function twig_escape_filter(Twig_Environment $env, $string, $strategy = 'html', 
 
     switch ($strategy) {
         case 'html':
-            // see http://php.net/htmlspecialchars
+            // see https://secure.php.net/htmlspecialchars
 
             // Using a static variable to avoid initializing the array
             // each time the function is called. Moving the declaration on the
@@ -1040,7 +1040,7 @@ function twig_escape_filter(Twig_Environment $env, $string, $strategy = 'html', 
 
         case 'js':
             // escape all non-alphanumeric characters
-            // into their \xHH or \uHHHH representations
+            // into their \x or \uHHHH representations
             if ('UTF-8' !== $charset) {
                 $string = twig_convert_encoding($string, 'UTF-8', $charset);
             }
@@ -1152,9 +1152,23 @@ function _twig_escape_js_callback($matches)
 {
     $char = $matches[0];
 
-    // \xHH
-    if (!isset($char[1])) {
-        return '\\x'.strtoupper(substr('00'.bin2hex($char), -2));
+    /*
+     * A few characters have short escape sequences in JSON and JavaScript.
+     * Escape sequences supported only by JavaScript, not JSON, are ommitted.
+     * \" is also supported but omitted, because the resulting string is not HTML safe.
+     */
+    static $shortMap = array(
+        '\\' => '\\\\',
+        '/' => '\\/',
+        "\x08" => '\b',
+        "\x0C" => '\f',
+        "\x0A" => '\n',
+        "\x0D" => '\r',
+        "\x09" => '\t',
+    );
+
+    if (isset($shortMap[$char])) {
+        return $shortMap[$char];
     }
 
     // \uHHHH
@@ -1191,8 +1205,8 @@ function _twig_escape_css_callback($matches)
 /**
  * This function is adapted from code coming from Zend Framework.
  *
- * @copyright Copyright (c) 2005-2012 Zend Technologies USA Inc. (http://www.zend.com)
- * @license   http://framework.zend.com/license/new-bsd New BSD License
+ * @copyright Copyright (c) 2005-2012 Zend Technologies USA Inc. (https://www.zend.com)
+ * @license   https://framework.zend.com/license/new-bsd New BSD License
  */
 function _twig_escape_html_attr_callback($matches)
 {
@@ -1216,7 +1230,7 @@ function _twig_escape_html_attr_callback($matches)
      * The following replaces characters undefined in HTML with the
      * hex entity for the Unicode replacement character.
      */
-    if (($ord <= 0x1f && $chr != "\t" && $chr != "\n" && $chr != "\r") || ($ord >= 0x7f && $ord <= 0x9f)) {
+    if (($ord <= 0x1f && "\t" != $chr && "\n" != $chr && "\r" != $chr) || ($ord >= 0x7f && $ord <= 0x9f)) {
         return '&#xFFFD;';
     }
 
@@ -1224,7 +1238,7 @@ function _twig_escape_html_attr_callback($matches)
      * Check if the current character to escape has a name entity we should
      * replace it with while grabbing the hex value of the character.
      */
-    if (strlen($chr) == 1) {
+    if (1 == strlen($chr)) {
         $hex = strtoupper(substr('00'.bin2hex($chr), -2));
     } else {
         $chr = twig_convert_encoding($chr, 'UTF-16BE', 'UTF-8');
@@ -1263,12 +1277,20 @@ if (function_exists('mb_get_info')) {
             return mb_strlen($thing, $env->getCharset());
         }
 
+        if ($thing instanceof \SimpleXMLElement) {
+            return count($thing);
+        }
+
         if (is_object($thing) && method_exists($thing, '__toString') && !$thing instanceof \Countable) {
             return mb_strlen((string) $thing, $env->getCharset());
         }
 
         if ($thing instanceof \Countable || is_array($thing)) {
             return count($thing);
+        }
+
+        if ($thing instanceof \IteratorAggregate) {
+            return iterator_count($thing);
         }
 
         return 1;
@@ -1362,12 +1384,20 @@ else {
             return strlen($thing);
         }
 
+        if ($thing instanceof \SimpleXMLElement) {
+            return count($thing);
+        }
+
         if (is_object($thing) && method_exists($thing, '__toString') && !$thing instanceof \Countable) {
             return strlen((string) $thing);
         }
 
         if ($thing instanceof \Countable || is_array($thing)) {
             return count($thing);
+        }
+
+        if ($thing instanceof \IteratorAggregate) {
+            return iterator_count($thing);
         }
 
         return 1;
@@ -1444,7 +1474,7 @@ function twig_test_empty($value)
  *
  * <pre>
  * {# evaluates to true if the foo variable is an array or a traversable object #}
- * {% if foo is traversable %}
+ * {% if foo is iterable %}
  *     {# ... #}
  * {% endif %}
  * </pre>
