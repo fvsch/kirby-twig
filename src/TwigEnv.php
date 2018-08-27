@@ -116,7 +116,7 @@ class TwigEnv
     {
         $kirby = Kirby::instance();
         $this->debug = $kirby->get('option', 'debug');
-        $this->templateDir = $kirby->roots()->templates();
+        $this->templateDir = $this->normalizePath($kirby->roots()->templates());
 
         // Get environment & user config
         $options = [
@@ -128,9 +128,9 @@ class TwigEnv
             ],
             'namespace' => [
                 'templates' => $this->templateDir,
-                'snippets' => $kirby->roots->snippets(),
-                'plugins' => $kirby->roots->plugins(),
-                'assets' => $kirby->roots->assets()
+                'snippets' => $this->normalizePath($kirby->roots->snippets()),
+                'plugins' => $this->normalizePath($kirby->roots->plugins()),
+                'assets' => $this->normalizePath($kirby->roots->assets())
             ],
             'function' => $this->cleanNames(array_merge(
                 $this->defaultFunctions,
@@ -205,8 +205,11 @@ class TwigEnv
     {
         // Remove the start of the templates path, since Twig asks
         // for a path starting from one of the registered directories.
-        $path = ltrim(str_replace($this->templateDir, '',
-            preg_replace('#[\\\/]+#', '/', $filePath)), '/');
+        $path = $this->normalizePath($filePath);
+        $prefix = $this->templateDir . '/';
+        if (strpos($path, $prefix) === 0) {
+            $path = substr($path, strlen($prefix));
+        }
 
         try {
             $content = $this->twig->render($path, $tplData);
@@ -346,6 +349,15 @@ class TwigEnv
             }
         }
         return implode("\n", $excerpt);
+    }
+
+    /**
+     * Normalize file paths, especially for Windows slashes
+     */
+    private function normalizePath($path)
+    {
+        $clean = trim(preg_replace('#[\\\/]+#', '/', $path));
+        return rtrim($clean, '/');
     }
 
     /**
