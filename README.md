@@ -3,7 +3,7 @@ Twig Plugin for Kirby CMS
 
 <img src="doc/kirby-twig.png" width="200" alt="">
 
--   Adds support for [Twig templates](http://twig.sensiolabs.org/) to [Kirby CMS](https://getkirby.com/) (2.3+).
+-   Adds support for [Twig templates](https://twig.symfony.com/) to [Kirby CMS](https://getkirby.com/) 2.x.
 -   PHP templates still work, you don’t have to rewrite them if you don’t want to.
 
 
@@ -40,8 +40,8 @@ Installation
 
 ### Standard installation
 
-1.  Download [the latest release](https://github.com/fvsch/kirby-twig/archive/master.zip).
-2.  Unzip, rename the `kirby-twig-master` folder to just `twig` and put it in your project’s `site/plugins` folder.
+1.  Download [the latest release](https://github.com/fvsch/kirby-twig/archive/main.zip).
+2.  Unzip, rename the `kirby-twig-main` folder to just `twig` and put it in your project’s `site/plugins` folder.
 
 You should end up with a folder structure like this:
 
@@ -56,12 +56,13 @@ site
 
 ### Using [Composer](https://getcomposer.org/)
 
-Require `fvsch/kirby-twig` in your composer dependencies:
+Require `fvsch/kirby-twig` in your Composer dependencies:
+
 ```sh
 composer require fvsch/kirby-twig:^3.0
 ```
 
-Then, make sure your Kirby installation is autoloading composer dependencies on both frontend and panel. For this, the safest way is to create your own custom plugin.
+Then, make sure your Kirby installation is autoloading Composer dependencies on both frontend and panel. For this, the safest way is to create your own custom plugin.
 
 ```
 site
@@ -74,8 +75,8 @@ site
 <?php
 // site/plugins/composer/composer.php
 
-// composer autoload
-require_once kirby()->roots()->index().DS.'vendor'.DS.'autoload.php';
+// Composer autoload
+require_once kirby()->roots()->index() . '/vendor/autoload.php';
 ```
 
 Finally, register the plugin by adding this line to your newly created `site/plugins/composer/composer.php`, **after** having required the autoloader.
