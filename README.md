@@ -56,17 +56,34 @@ site
 
 ### Using [Composer](https://getcomposer.org/)
 
-1.  Require `fvsch/kirby-twig` in your dependencies:
-    ```sh
-    composer require fvsch/kirby-twig:^3.0
-    ```
+Require `fvsch/kirby-twig` in your composer dependencies:
+```sh
+composer require fvsch/kirby-twig:^3.0
+```
 
-2.  Register the plugin in your `site/config/config.php`:
-    ```php
-    // Register the Twig plugin's template component
-    Kirby\Twig\Plugin::register();
-    ```
+Then, make sure your Kirby installation is autoloading composer dependencies on both frontend and panel. For this, the safest way is to create your own custom plugin.
 
+```
+site
+ └─ plugins
+     └─ composer
+         └─ composer.php
+```
+
+```php
+<?php
+// site/plugins/composer/composer.php
+
+// composer autoload
+require_once kirby()->roots()->index().DS.'vendor'.DS.'autoload.php';
+```
+
+Finally, register the plugin by adding this line to your newly created `site/plugins/composer/composer.php`, **after** having required the autoloader.
+
+```php
+// Register the Twig plugin's template component
+Kirby\Twig\Plugin::register();
+```
 
 Usage
 -----
