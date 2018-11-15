@@ -115,7 +115,7 @@ Exposing and using classes
 
 If you need to use PHP classes in your templates, I recommend two approaches:
 
-1. Do it in a controller instead, and feed the resulting content to your templates. (Kirby documentation: [https://getkirby.com/docs/developer-guide/advanced/controllers](Controllers).)
+1. Do it in a controller instead, and feed the resulting content to your templates. ([Kirby documentation: Controllers](https://getkirby.com/docs/developer-guide/advanced/controllers).)
 2. Write a custom function that returns a class instance.
 
 Let’s look at an example of that second solution:
